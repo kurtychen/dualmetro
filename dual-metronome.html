@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dual Metronome</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #0f0f13;
+    color: #e0e0e0;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 24px 12px;
+    gap: 20px;
+  }
+
+  h1 {
+    font-size: 1.4rem;
+    font-weight: 300;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #888;
+  }
+
+  .tempo-section {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 12px;
+    background: #1a1a22;
+    border: 1px solid #2a2a3a;
+    border-radius: 20px;
+    padding: 20px 16px;
+    width: 100%;
+  }
+
+  .tempo-section label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: #666;
+  }
+
+  .tempo-display {
+    font-size: 3rem;
+    font-weight: 700;
+    color: #fff;
+    width: 90px;
+    text-align: center;
+    line-height: 1;
+  }
+
+  .tempo-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .tempo-controls button {
+    background: #2a2a3a;
+    border: none;
+    color: #ccc;
+    width: 32px;
+    height: 28px;
+    border-radius: 6px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+
+  .tempo-controls button:hover { background: #3a3a50; }
+
+  input[type=range] {
+    -webkit-appearance: none;
+    width: min(200px, 100%);
+    height: 4px;
+    background: #2a2a3a;
+    border-radius: 2px;
+    outline: none;
+  }
+
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #7c6aff;
+    cursor: pointer;
+  }
+
+  .main-col {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    width: 100%;
+    max-width: 360px;
+  }
+
+  .metronomes {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .metro {
+    background: #1a1a22;
+    border: 1px solid #2a2a3a;
+    border-radius: 20px;
+    padding: 20px 16px;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    transition: border-color 0.2s;
+  }
+
+  .metro.A { --accent: #7c6aff; }
+  .metro.B { --accent: #ff6a9a; }
+
+  .metro h2 {
+    font-size: 0.75rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+
+  /* Beat dots */
+  .beats {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+    min-height: 28px;
+  }
+
+  .beat-dot {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: #2a2a3a;
+    border: 2px solid #3a3a50;
+    transition: background 0.05s, box-shadow 0.05s, transform 0.05s;
+  }
+
+  .beat-dot.accent {
+    border-color: var(--accent);
+  }
+
+  .beat-dot.active {
+    background: var(--accent);
+    box-shadow: 0 0 14px var(--accent);
+    transform: scale(1.25);
+  }
+
+  /* Time sig controls */
+  .timesig {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .timesig label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: #555;
+  }
+
+  .sig-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .sig-col span {
+    font-size: 0.6rem;
+    color: #444;
+    text-transform: uppercase;
+  }
+
+  .sig-col select {
+    background: #2a2a3a;
+    border: 1px solid #3a3a50;
+    color: #ddd;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    outline: none;
+  }
+
+  /* Sound type */
+  .sound-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+  }
+
+  .sound-row label {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #555;
+    white-space: nowrap;
+  }
+
+  .sound-toggle {
+    display: flex;
+    background: #2a2a3a;
+    border-radius: 8px;
+    padding: 3px;
+    gap: 3px;
+    flex: 1;
+  }
+
+  .sound-toggle button {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: #666;
+    font-size: 0.7rem;
+    padding: 5px 4px;
+    border-radius: 6px;
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    transition: background 0.15s, color 0.15s;
+    white-space: nowrap;
+  }
+
+  .sound-toggle button.active {
+    background: var(--accent);
+    color: #fff;
+  }
+
+  /* Volume */
+  .vol-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+  }
+
+  .vol-row label {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #555;
+    width: 40px;
+  }
+
+  .vol-row input[type=range] {
+    width: 100%;
+    flex: 1;
+  }
+
+  .vol-row input[type=range]::-webkit-slider-thumb {
+    background: var(--accent);
+  }
+
+  /* Flash overlay */
+  .flash {
+    position: absolute;
+    inset: 0;
+    border-radius: 20px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.05s;
+  }
+
+  .metro { position: relative; overflow: hidden; }
+
+  /* Transport */
+  .transport {
+    display: flex;
+    gap: 12px;
+  }
+
+  .btn {
+    padding: 12px 36px;
+    border: none;
+    border-radius: 10px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    letter-spacing: 0.05em;
+    transition: opacity 0.15s, transform 0.1s;
+  }
+
+  .btn:active { transform: scale(0.97); }
+
+  .btn-play {
+    background: linear-gradient(135deg, #7c6aff, #ff6a9a);
+    color: #fff;
+  }
+
+  .btn-stop {
+    background: #2a2a3a;
+    color: #aaa;
+    border: 1px solid #3a3a50;
+  }
+
+  .beat-counter {
+    font-size: 0.7rem;
+    color: #444;
+    letter-spacing: 0.1em;
+  }
+
+  @media (max-width: 420px) {
+    h1 { font-size: 1.1rem; }
+
+    .tempo-display { font-size: 2.4rem; width: 72px; }
+
+    .tempo-section { gap: 10px; padding: 14px 16px; }
+
+    /* Slider takes full row below the BPM controls */
+    #tempoSlider { width: 100%; order: 10; }
+
+    .metronomes { gap: 16px; }
+
+    .btn { padding: 11px 24px; font-size: 0.9rem; }
+  }
+</style>
+</head>
+<body>
+
+<h1>Dual Metronome</h1>
+
+<div class="main-col">
+<!-- Tempo -->
+<div class="tempo-section">
+  <label>BPM</label>
+  <div class="tempo-controls">
+    <button onclick="changeTempo(5)">▲</button>
+    <button onclick="changeTempo(-5)">▼</button>
+  </div>
+  <div class="tempo-display" id="bpmDisplay">120</div>
+  <input type="range" id="tempoSlider" min="20" max="300" value="120" oninput="setTempo(this.value)">
+</div>
+
+<!-- Metronomes -->
+<div class="metronomes">
+
+  <!-- A -->
+  <div class="metro A" id="metroA">
+    <div class="flash" id="flashA"></div>
+    <h2>Metronome A</h2>
+    <div class="beats" id="beatsA"></div>
+    <div class="timesig">
+      <label>Time Sig</label>
+      <div class="sig-col">
+        <span>Beats</span>
+        <select id="numA" onchange="buildBeats('A')">
+          <option>1</option><option>2</option><option selected>4</option>
+          <option>3</option><option>5</option><option>6</option><option>7</option><option>8</option>
+        </select>
+      </div>
+      <div style="font-size:1.4rem;color:#444;">/</div>
+      <div class="sig-col">
+        <span>Note</span>
+        <select id="denA" onchange="buildBeats('A')">
+          <option>2</option><option selected>4</option><option>8</option><option>16</option>
+        </select>
+      </div>
+    </div>
+    <div class="sound-row">
+      <label>Sound</label>
+      <div class="sound-toggle" id="soundToggleA">
+        <button class="active" onclick="setSound('A','analog',this)">🔔 Analog</button>
+        <button onclick="setSound('A','elec-sine',this)">◉ Sine</button>
+        <button onclick="setSound('A','elec-beep',this)">▪ Beep</button>
+      </div>
+    </div>
+    <div class="vol-row">
+      <label>Vol</label>
+      <input type="range" id="volA" min="0" max="1" step="0.01" value="0.7">
+    </div>
+    <div class="beat-counter" id="counterA">— / —</div>
+  </div>
+
+  <!-- B -->
+  <div class="metro B" id="metroB">
+    <div class="flash" id="flashB"></div>
+    <h2>Metronome B</h2>
+    <div class="beats" id="beatsB"></div>
+    <div class="timesig">
+      <label>Time Sig</label>
+      <div class="sig-col">
+        <span>Beats</span>
+        <select id="numB" onchange="buildBeats('B')">
+          <option>1</option><option>2</option><option>4</option>
+          <option selected>3</option><option>5</option><option>6</option><option>7</option><option>8</option>
+        </select>
+      </div>
+      <div style="font-size:1.4rem;color:#444;">/</div>
+      <div class="sig-col">
+        <span>Note</span>
+        <select id="denB" onchange="buildBeats('B')">
+          <option>2</option><option selected>4</option><option>8</option><option>16</option>
+        </select>
+      </div>
+    </div>
+    <div class="sound-row">
+      <label>Sound</label>
+      <div class="sound-toggle" id="soundToggleB">
+        <button onclick="setSound('B','analog',this)">🔔 Analog</button>
+        <button onclick="setSound('B','elec-sine',this)">◉ Sine</button>
+        <button class="active" onclick="setSound('B','elec-beep',this)">▪ Beep</button>
+      </div>
+    </div>
+    <div class="vol-row">
+      <label>Vol</label>
+      <input type="range" id="volB" min="0" max="1" step="0.01" value="0.7">
+    </div>
+    <div class="beat-counter" id="counterB">— / —</div>
+  </div>
+
+</div>
+
+</div><!-- /main-col -->
+
+<!-- Transport -->
+<div class="transport">
+  <button class="btn btn-play" id="playBtn" onclick="togglePlay()">▶ Start</button>
+  <button class="btn btn-stop" onclick="stop()">■ Reset</button>
+</div>
+
+<script>
+const ctx = new (window.AudioContext || window.webkitAudioContext)();
+
+let bpm = 120;
+let running = false;
+let startTime = 0;
+let animFrame = null;
+
+const state = {
+  A: { beat: 0, lastBeat: -1, swingDir: 1 },
+  B: { beat: 0, lastBeat: -1, swingDir: 1 }
+};
+
+// Build beat dots
+function buildBeats(id) {
+  const n = parseInt(document.getElementById('num' + id).value);
+  const el = document.getElementById('beats' + id);
+  el.innerHTML = '';
+  for (let i = 0; i < n; i++) {
+    const d = document.createElement('div');
+    d.className = 'beat-dot' + (i === 0 ? ' accent' : '');
+    d.id = `dot${id}_${i}`;
+    el.appendChild(d);
+  }
+  state[id].beat = 0;
+  state[id].lastBeat = -1;
+}
+
+buildBeats('A');
+buildBeats('B');
+
+// Tempo
+function setTempo(v) {
+  bpm = Math.max(20, Math.min(300, parseInt(v)));
+  document.getElementById('bpmDisplay').textContent = bpm;
+  document.getElementById('tempoSlider').value = bpm;
+}
+
+function changeTempo(d) { setTempo(bpm + d); }
+
+// Sound type state
+const soundType = { A: 'analog', B: 'elec-beep' };
+
+function setSound(id, type, btn) {
+  soundType[id] = type;
+  document.querySelectorAll(`#soundToggle${id} button`).forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+// Shared: white noise buffer (reused)
+let _noiseBuffer = null;
+function getNoiseBuffer() {
+  if (_noiseBuffer) return _noiseBuffer;
+  const len = ctx.sampleRate * 0.5;
+  _noiseBuffer = ctx.createBuffer(1, len, ctx.sampleRate);
+  const d = _noiseBuffer.getChannelData(0);
+  for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+  return _noiseBuffer;
+}
+
+function playClick(id, isAccent) {
+  const vol = parseFloat(document.getElementById('vol' + id).value);
+  if (vol === 0) return;
+  const type = soundType[id];
+  const now = ctx.currentTime;
+
+  if (type === 'analog') {
+    playAnalog(id, isAccent, vol, now);
+  } else if (type === 'elec-sine') {
+    playElecSine(id, isAccent, vol, now);
+  } else {
+    playElecBeep(id, isAccent, vol, now);
+  }
+}
+
+// ── Analog: woody transient + low body thud ──────────────────────────────────
+function playAnalog(id, isAccent, vol, now) {
+  const pitch = id === 'A' ? (isAccent ? 2200 : 1600) : (isAccent ? 1400 : 1000);
+
+  // Noise burst → bandpass (wood character)
+  const noise = ctx.createBufferSource();
+  noise.buffer = getNoiseBuffer();
+  const bp = ctx.createBiquadFilter();
+  bp.type = 'bandpass';
+  bp.frequency.value = pitch;
+  bp.Q.value = 4;
+  const ng = ctx.createGain();
+  ng.gain.setValueAtTime(vol * (isAccent ? 0.9 : 0.55), now);
+  ng.gain.exponentialRampToValueAtTime(0.001, now + 0.045);
+  noise.connect(bp); bp.connect(ng); ng.connect(ctx.destination);
+  noise.start(now); noise.stop(now + 0.05);
+
+  // Low body thud
+  const osc = ctx.createOscillator();
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(isAccent ? 160 : 110, now);
+  osc.frequency.exponentialRampToValueAtTime(50, now + 0.06);
+  const og = ctx.createGain();
+  og.gain.setValueAtTime(vol * (isAccent ? 0.6 : 0.35), now);
+  og.gain.exponentialRampToValueAtTime(0.001, now + 0.07);
+  osc.connect(og); og.connect(ctx.destination);
+  osc.start(now); osc.stop(now + 0.08);
+}
+
+// ── Electronic sine: clean pitched blip ─────────────────────────────────────
+function playElecSine(id, isAccent, vol, now) {
+  const freq = id === 'A' ? (isAccent ? 1760 : 1320) : (isAccent ? 880 : 660);
+  const osc = ctx.createOscillator();
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(freq, now);
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(0, now);
+  g.gain.linearRampToValueAtTime(vol * (isAccent ? 1 : 0.6), now + 0.003);
+  g.gain.exponentialRampToValueAtTime(0.001, now + (isAccent ? 0.12 : 0.08));
+  osc.connect(g); g.connect(ctx.destination);
+  osc.start(now); osc.stop(now + 0.13);
+}
+
+// ── Electronic beep: square-wave punch ──────────────────────────────────────
+function playElecBeep(id, isAccent, vol, now) {
+  const freq = id === 'A' ? (isAccent ? 1200 : 900) : (isAccent ? 600 : 450);
+  const osc = ctx.createOscillator();
+  osc.type = 'square';
+  osc.frequency.setValueAtTime(freq, now);
+
+  // Highpass to thin it out (less harsh)
+  const hp = ctx.createBiquadFilter();
+  hp.type = 'highpass';
+  hp.frequency.value = 800;
+
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(vol * (isAccent ? 0.55 : 0.32), now);
+  g.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
+
+  osc.connect(hp); hp.connect(g); g.connect(ctx.destination);
+  osc.start(now); osc.stop(now + 0.05);
+}
+
+// Flash
+function flash(id) {
+  const el = document.getElementById('flash' + id);
+  const accent = id === 'A' ? 'rgba(124,106,255,0.18)' : 'rgba(255,106,154,0.18)';
+  el.style.background = accent;
+  el.style.opacity = 1;
+  setTimeout(() => { el.style.opacity = 0; }, 80);
+}
+
+// Main loop
+function tick() {
+  if (!running) return;
+  const elapsed = ctx.currentTime - startTime;
+
+  for (const id of ['A', 'B']) {
+    const num = parseInt(document.getElementById('num' + id).value);
+    const den = parseInt(document.getElementById('den' + id).value);
+    // Beat duration: quarter note = 60/bpm; adjust for denominator
+    const beatDur = (60 / bpm) * (4 / den);
+    const totalBeat = Math.floor(elapsed / beatDur);
+    const beat = totalBeat % num;
+    const phase = (elapsed % beatDur) / beatDur; // 0–1 within beat
+
+    // Beat trigger
+    if (beat !== state[id].lastBeat) {
+      state[id].lastBeat = beat;
+      const isAccent = beat === 0;
+      playClick(id, isAccent);
+      flash(id);
+
+      // Update dots
+      const dots = document.querySelectorAll(`#beats${id} .beat-dot`);
+      dots.forEach((d, i) => d.classList.toggle('active', i === beat));
+
+      // Counter
+      document.getElementById('counter' + id).textContent =
+        `Beat ${beat + 1} / ${num}`;
+    }
+  }
+
+  animFrame = requestAnimationFrame(tick);
+}
+
+function togglePlay() {
+  if (running) {
+    pause();
+  } else {
+    play();
+  }
+}
+
+function play() {
+  if (ctx.state === 'suspended') ctx.resume();
+  running = true;
+  startTime = ctx.currentTime;
+  state.A.lastBeat = -1;
+  state.B.lastBeat = -1;
+  document.getElementById('playBtn').textContent = '⏸ Pause';
+  animFrame = requestAnimationFrame(tick);
+}
+
+function pause() {
+  running = false;
+  cancelAnimationFrame(animFrame);
+  document.getElementById('playBtn').textContent = '▶ Start';
+}
+
+function stop() {
+  pause();
+document.querySelectorAll('.beat-dot').forEach(d => d.classList.remove('active'));
+  document.getElementById('counterA').textContent = '— / —';
+  document.getElementById('counterB').textContent = '— / —';
+  state.A.lastBeat = -1;
+  state.B.lastBeat = -1;
+}
+</script>
+</body>
+</html>
