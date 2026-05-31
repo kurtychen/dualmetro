@@ -15,12 +15,12 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 24px 12px;
-    gap: 20px;
+    padding: 14px 12px;
+    gap: 12px;
   }
 
   h1 {
-    font-size: 1.4rem;
+    font-size: 1rem;
     font-weight: 300;
     letter-spacing: 0.2em;
     text-transform: uppercase;
@@ -32,11 +32,11 @@
     align-items: center;
     flex-wrap: wrap;
     justify-content: center;
-    gap: 12px;
+    gap: 10px;
     background: #1a1a22;
     border: 1px solid #2a2a3a;
     border-radius: 20px;
-    padding: 20px 16px;
+    padding: 12px 16px;
     width: 100%;
   }
 
@@ -48,10 +48,10 @@
   }
 
   .tempo-display {
-    font-size: 3rem;
+    font-size: 2.2rem;
     font-weight: 700;
     color: #fff;
-    width: 90px;
+    width: 74px;
     text-align: center;
     line-height: 1;
   }
@@ -97,7 +97,7 @@
   .main-col {
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 12px;
     width: 100%;
     max-width: 360px;
   }
@@ -105,19 +105,19 @@
   .metronomes {
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 12px;
   }
 
   .metro {
     background: #1a1a22;
     border: 1px solid #2a2a3a;
     border-radius: 20px;
-    padding: 20px 16px;
+    padding: 12px 14px;
     width: 100%;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 16px;
+    gap: 10px;
     transition: border-color 0.2s;
   }
 
@@ -134,15 +134,14 @@
   /* Beat dots */
   .beats {
     display: flex;
-    gap: 8px;
+    gap: 6px;
     flex-wrap: wrap;
     justify-content: center;
-    min-height: 28px;
   }
 
   .beat-dot {
-    width: 22px;
-    height: 22px;
+    width: 18px;
+    height: 18px;
     border-radius: 50%;
     background: #2a2a3a;
     border: 2px solid #3a3a50;
@@ -286,10 +285,10 @@
   }
 
   .btn {
-    padding: 12px 36px;
+    padding: 9px 28px;
     border: none;
     border-radius: 10px;
-    font-size: 1rem;
+    font-size: 0.9rem;
     font-weight: 600;
     cursor: pointer;
     letter-spacing: 0.05em;
@@ -435,7 +434,27 @@
 </div>
 
 <script>
-const ctx = new (window.AudioContext || window.webkitAudioContext)();
+// AudioContext created lazily on first user gesture (required for iOS WebKit)
+let ctx = null;
+
+function getCtx() {
+  if (!ctx) {
+    ctx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  return ctx;
+}
+
+// Play a silent one-sample buffer — forces WebKit to fully unlock the context
+// Must be called synchronously inside a user gesture handler
+function unlockAudio() {
+  const c = getCtx();
+  const buf = c.createBuffer(1, 1, c.sampleRate);
+  const src = c.createBufferSource();
+  src.buffer = buf;
+  src.connect(c.destination);
+  src.start(0);
+  if (c.state === 'suspended') c.resume();
+}
 
 let bpm = 120;
 let running = false;
@@ -483,12 +502,14 @@ function setSound(id, type, btn) {
   btn.classList.add('active');
 }
 
-// Shared: white noise buffer (reused)
+// Shared: white noise buffer (reused, recreated if ctx changes)
 let _noiseBuffer = null;
 function getNoiseBuffer() {
-  if (_noiseBuffer) return _noiseBuffer;
-  const len = ctx.sampleRate * 0.5;
-  _noiseBuffer = ctx.createBuffer(1, len, ctx.sampleRate);
+  const c = getCtx();
+  if (_noiseBuffer && _noiseBuffer._ctx === c) return _noiseBuffer;
+  const len = c.sampleRate * 0.5;
+  _noiseBuffer = c.createBuffer(1, len, c.sampleRate);
+  _noiseBuffer._ctx = c;
   const d = _noiseBuffer.getChannelData(0);
   for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
   return _noiseBuffer;
@@ -498,7 +519,7 @@ function playClick(id, isAccent) {
   const vol = parseFloat(document.getElementById('vol' + id).value);
   if (vol === 0) return;
   const type = soundType[id];
-  const now = ctx.currentTime;
+  const now = getCtx().currentTime;
 
   if (type === 'analog') {
     playAnalog(id, isAccent, vol, now);
@@ -511,64 +532,61 @@ function playClick(id, isAccent) {
 
 // ── Analog: woody transient + low body thud ──────────────────────────────────
 function playAnalog(id, isAccent, vol, now) {
+  const c = getCtx();
   const pitch = id === 'A' ? (isAccent ? 2200 : 1600) : (isAccent ? 1400 : 1000);
 
-  // Noise burst → bandpass (wood character)
-  const noise = ctx.createBufferSource();
+  const noise = c.createBufferSource();
   noise.buffer = getNoiseBuffer();
-  const bp = ctx.createBiquadFilter();
+  const bp = c.createBiquadFilter();
   bp.type = 'bandpass';
   bp.frequency.value = pitch;
   bp.Q.value = 4;
-  const ng = ctx.createGain();
+  const ng = c.createGain();
   ng.gain.setValueAtTime(vol * (isAccent ? 0.9 : 0.55), now);
   ng.gain.exponentialRampToValueAtTime(0.001, now + 0.045);
-  noise.connect(bp); bp.connect(ng); ng.connect(ctx.destination);
+  noise.connect(bp); bp.connect(ng); ng.connect(c.destination);
   noise.start(now); noise.stop(now + 0.05);
 
-  // Low body thud
-  const osc = ctx.createOscillator();
+  const osc = c.createOscillator();
   osc.type = 'sine';
   osc.frequency.setValueAtTime(isAccent ? 160 : 110, now);
   osc.frequency.exponentialRampToValueAtTime(50, now + 0.06);
-  const og = ctx.createGain();
+  const og = c.createGain();
   og.gain.setValueAtTime(vol * (isAccent ? 0.6 : 0.35), now);
   og.gain.exponentialRampToValueAtTime(0.001, now + 0.07);
-  osc.connect(og); og.connect(ctx.destination);
+  osc.connect(og); og.connect(c.destination);
   osc.start(now); osc.stop(now + 0.08);
 }
 
 // ── Electronic sine: clean pitched blip ─────────────────────────────────────
 function playElecSine(id, isAccent, vol, now) {
+  const c = getCtx();
   const freq = id === 'A' ? (isAccent ? 1760 : 1320) : (isAccent ? 880 : 660);
-  const osc = ctx.createOscillator();
+  const osc = c.createOscillator();
   osc.type = 'sine';
   osc.frequency.setValueAtTime(freq, now);
-  const g = ctx.createGain();
+  const g = c.createGain();
   g.gain.setValueAtTime(0, now);
   g.gain.linearRampToValueAtTime(vol * (isAccent ? 1 : 0.6), now + 0.003);
   g.gain.exponentialRampToValueAtTime(0.001, now + (isAccent ? 0.12 : 0.08));
-  osc.connect(g); g.connect(ctx.destination);
+  osc.connect(g); g.connect(c.destination);
   osc.start(now); osc.stop(now + 0.13);
 }
 
 // ── Electronic beep: square-wave punch ──────────────────────────────────────
 function playElecBeep(id, isAccent, vol, now) {
+  const c = getCtx();
   const freq = id === 'A' ? (isAccent ? 1200 : 900) : (isAccent ? 600 : 450);
-  const osc = ctx.createOscillator();
+  const osc = c.createOscillator();
   osc.type = 'square';
   osc.frequency.setValueAtTime(freq, now);
-
-  // Highpass to thin it out (less harsh)
-  const hp = ctx.createBiquadFilter();
+  const hp = c.createBiquadFilter();
   hp.type = 'highpass';
   hp.frequency.value = 800;
-
-  const g = ctx.createGain();
-  g.gain.setValueAtTime(vol * (isAccent ? 0.55 : 0.32), now);
+  const g = c.createGain();
+  g.gain.setValueAtTime(vol * (isAccent ? 1.0 : 0.65), now);
   g.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
-
-  osc.connect(hp); hp.connect(g); g.connect(ctx.destination);
+  osc.connect(hp); hp.connect(g); g.connect(c.destination);
   osc.start(now); osc.stop(now + 0.05);
 }
 
@@ -584,7 +602,7 @@ function flash(id) {
 // Main loop
 function tick() {
   if (!running) return;
-  const elapsed = ctx.currentTime - startTime;
+  const elapsed = getCtx().currentTime - startTime;
 
   for (const id of ['A', 'B']) {
     const num = parseInt(document.getElementById('num' + id).value);
@@ -624,9 +642,9 @@ function togglePlay() {
 }
 
 function play() {
-  if (ctx.state === 'suspended') ctx.resume();
+  unlockAudio(); // creates ctx + fires silent buffer synchronously (iOS requirement)
   running = true;
-  startTime = ctx.currentTime;
+  startTime = getCtx().currentTime;
   state.A.lastBeat = -1;
   state.B.lastBeat = -1;
   document.getElementById('playBtn').textContent = '⏸ Pause';
