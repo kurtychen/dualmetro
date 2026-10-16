@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pitch Drone</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #0f0f13;
+    color: #e0e0e0;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 24px 12px;
+    gap: 20px;
+  }
+
+  h1 {
+    font-size: 1.4rem;
+    font-weight: 300;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #888;
+  }
+
+  .card {
+    --accent: #3fd0a0;
+    background: #1a1a22;
+    border: 1px solid #2a2a3a;
+    border-radius: 20px;
+    padding: 24px 16px;
+    width: 100%;
+    max-width: 360px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 18px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+
+  .card.on {
+    border-color: var(--accent);
+    box-shadow: 0 0 18px rgba(63, 208, 160, 0.15);
+  }
+
+  .drone-freq {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+  }
+
+  .drone-note {
+    font-size: 3.4rem;
+    font-weight: 700;
+    color: #fff;
+    line-height: 1;
+  }
+
+  .drone-hz {
+    font-size: 1rem;
+    color: #888;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .ctrl-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    width: 100%;
+  }
+
+  .ctrl-row > label {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #555;
+    white-space: nowrap;
+  }
+
+  .stepper {
+    display: flex;
+    align-items: center;
+    background: #2a2a3a;
+    border-radius: 8px;
+    padding: 3px;
+    gap: 3px;
+  }
+
+  .stepper button {
+    background: transparent;
+    border: none;
+    color: #ccc;
+    width: 30px;
+    height: 28px;
+    border-radius: 6px;
+    font-size: 1rem;
+    cursor: pointer;
+  }
+
+  .stepper button:hover { background: #3a3a50; }
+
+  .stepper input {
+    width: 64px;
+    background: #1a1a22;
+    border: 1px solid #3a3a50;
+    color: #fff;
+    border-radius: 6px;
+    padding: 4px 2px;
+    font-size: 0.95rem;
+    text-align: center;
+    outline: none;
+    -moz-appearance: textfield;
+  }
+
+  .stepper input::-webkit-outer-spin-button,
+  .stepper input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
+  .stepper input:focus { border-color: var(--accent); }
+
+  .stepper .unit {
+    font-size: 0.7rem;
+    color: #666;
+    padding-right: 6px;
+  }
+
+  .note-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 4px;
+    width: 100%;
+    background: #2a2a3a;
+    border-radius: 8px;
+    padding: 3px;
+  }
+
+  .note-grid button {
+    background: transparent;
+    border: none;
+    color: #888;
+    font-size: 0.85rem;
+    padding: 8px 0;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+  }
+
+  .note-grid button.sharp { color: #666; font-size: 0.75rem; }
+  .note-grid button:hover { background: #3a3a50; }
+
+  .note-grid button.active {
+    background: var(--accent);
+    color: #0f0f13;
+    font-weight: 700;
+  }
+
+  .sound-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+  }
+
+  .sound-row label {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #555;
+    white-space: nowrap;
+  }
+
+  .sound-toggle {
+    display: flex;
+    background: #2a2a3a;
+    border-radius: 8px;
+    padding: 3px;
+    gap: 3px;
+    flex: 1;
+  }
+
+  .sound-toggle button {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: #666;
+    font-size: 0.7rem;
+    padding: 5px 4px;
+    border-radius: 6px;
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    transition: background 0.15s, color 0.15s;
+    white-space: nowrap;
+  }
+
+  .sound-toggle button.active {
+    background: var(--accent);
+    color: #0f0f13;
+  }
+
+  .vol-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+  }
+
+  .vol-row label {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #555;
+    width: 40px;
+  }
+
+  input[type=range] {
+    -webkit-appearance: none;
+    flex: 1;
+    width: 100%;
+    height: 4px;
+    background: #2a2a3a;
+    border-radius: 2px;
+    outline: none;
+  }
+
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+  }
+
+  .btn-drone {
+    width: 100%;
+    padding: 12px;
+    border-radius: 10px;
+    font-size: 1rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    background: #2a2a3a;
+    color: #ccc;
+    border: 1px solid #3a3a50;
+    transition: background 0.15s, transform 0.1s;
+  }
+
+  .btn-drone:active { transform: scale(0.97); }
+
+  .btn-drone.on {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #0f0f13;
+  }
+
+  @media (max-width: 420px) {
+    h1 { font-size: 1.1rem; }
+    .drone-note { font-size: 2.8rem; }
+  }
+</style>
+</head>
+<body>
+
+<h1>Pitch Drone</h1>
+
+<div class="card" id="card">
+  <div class="drone-freq">
+    <div class="drone-note" id="droneNote">C4</div>
+    <div class="drone-hz" id="droneHz">262.22 Hz</div>
+  </div>
+
+  <div class="ctrl-row">
+    <label for="droneRef">Tuning A4</label>
+    <div class="stepper">
+      <button onclick="changeRef(-1)" aria-label="Lower reference">−</button>
+      <input type="number" id="droneRef" min="400" max="480" step="0.1" value="441"
+             onchange="setRef(this.value)">
+      <span class="unit">Hz</span>
+      <button onclick="changeRef(1)" aria-label="Raise reference">+</button>
+    </div>
+  </div>
+
+  <div class="note-grid" id="noteGrid"></div>
+
+  <div class="ctrl-row">
+    <label for="droneOct">Octave</label>
+    <div class="stepper">
+      <button onclick="changeOctave(-1)" aria-label="Octave down">−</button>
+      <input type="number" id="droneOct" min="0" max="8" step="1" value="4"
+             onchange="setOctave(this.value)">
+      <button onclick="changeOctave(1)" aria-label="Octave up">+</button>
+    </div>
+  </div>
+
+  <div class="sound-row">
+    <label>Tone</label>
+    <div class="sound-toggle" id="droneWave">
+      <button onclick="setDroneWave('sine',this)">◉ Sine</button>
+      <button class="active" onclick="setDroneWave('soft',this)">◬ Soft</button>
+      <button onclick="setDroneWave('rich',this)">◢ Rich</button>
+    </div>
+  </div>
+
+  <div class="vol-row">
+    <label>Vol</label>
+    <input type="range" id="volD" min="0" max="1" step="0.01" value="0.5" oninput="setDroneVol(this.value)">
+  </div>
+
+  <button class="btn-drone" id="droneBtn" onclick="toggleDrone()">▶ Drone On</button>
+</div>
+
+<script>
+const ctx = new (window.AudioContext || window.webkitAudioContext)();
+
+const NOTE_NAMES = ['C','C♯','D','D♯','E','F','F♯','G','G♯','A','A♯','B'];
+const drone = {
+  ref: 441, note: 0, octave: 4, wave: 'soft', vol: 0.5,
+  osc: null, filter: null, gain: null, on: false
+};
+
+// Equal temperament: f = ref * 2^((midi - 69) / 12), A4 = MIDI 69
+function droneFreq() {
+  const midi = (drone.octave + 1) * 12 + drone.note;
+  return drone.ref * Math.pow(2, (midi - 69) / 12);
+}
+
+function buildNoteGrid() {
+  const grid = document.getElementById('noteGrid');
+  NOTE_NAMES.forEach((name, i) => {
+    const b = document.createElement('button');
+    b.textContent = name;
+    if (name.includes('♯')) b.classList.add('sharp');
+    b.onclick = () => setNote(i);
+    grid.appendChild(b);
+  });
+}
+
+function updateDroneDisplay() {
+  document.getElementById('droneNote').textContent = NOTE_NAMES[drone.note] + drone.octave;
+  document.getElementById('droneHz').textContent = droneFreq().toFixed(2) + ' Hz';
+  document.getElementById('droneRef').value = drone.ref;
+  document.getElementById('droneOct').value = drone.octave;
+  document.querySelectorAll('#noteGrid button')
+    .forEach((b, i) => b.classList.toggle('active', i === drone.note));
+  // Glide to the new pitch if sounding
+  if (drone.on) {
+    drone.osc.frequency.setTargetAtTime(droneFreq(), ctx.currentTime, 0.02);
+    applyDroneWave(); // rich tone's filter cutoff tracks pitch
+  }
+}
+
+function setRef(v) {
+  const n = parseFloat(v);
+  if (!isNaN(n)) drone.ref = Math.round(Math.max(400, Math.min(480, n)) * 10) / 10;
+  updateDroneDisplay();
+}
+function changeRef(d) { setRef(drone.ref + d); }
+
+function setOctave(v) {
+  const n = parseInt(v);
+  if (!isNaN(n)) drone.octave = Math.max(0, Math.min(8, n));
+  updateDroneDisplay();
+}
+function changeOctave(d) { setOctave(drone.octave + d); }
+
+function setNote(i) { drone.note = i; updateDroneDisplay(); }
+
+function applyDroneWave() {
+  if (!drone.on) return;
+  const f = droneFreq();
+  if (drone.wave === 'sine') {
+    drone.osc.type = 'sine';
+    drone.filter.frequency.value = 20000;
+  } else if (drone.wave === 'soft') {
+    drone.osc.type = 'triangle';
+    drone.filter.frequency.value = 20000;
+  } else {
+    // Sawtooth tamed by a lowpass: reedy, organ-like
+    drone.osc.type = 'sawtooth';
+    drone.filter.frequency.value = Math.min(20000, Math.max(1200, f * 6));
+  }
+}
+
+function setDroneWave(type, btn) {
+  drone.wave = type;
+  document.querySelectorAll('#droneWave button').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  applyDroneWave();
+  if (drone.on) drone.gain.gain.setTargetAtTime(droneLevel(), ctx.currentTime, 0.03);
+}
+
+// Rich waveforms are louder perceptually; keep levels comparable
+function droneLevel() {
+  return drone.vol * (drone.wave === 'rich' ? 0.22 : drone.wave === 'soft' ? 0.4 : 0.45);
+}
+
+function setDroneVol(v) {
+  drone.vol = parseFloat(v);
+  if (drone.on) drone.gain.gain.setTargetAtTime(droneLevel(), ctx.currentTime, 0.03);
+}
+
+function startDrone() {
+  if (ctx.state === 'suspended') ctx.resume();
+  const now = ctx.currentTime;
+  drone.osc = ctx.createOscillator();
+  drone.filter = ctx.createBiquadFilter();
+  drone.filter.type = 'lowpass';
+  drone.filter.Q.value = 0.5;
+  drone.gain = ctx.createGain();
+  drone.osc.frequency.value = droneFreq();
+  drone.gain.gain.setValueAtTime(0, now);
+  drone.osc.connect(drone.filter);
+  drone.filter.connect(drone.gain);
+  drone.gain.connect(ctx.destination);
+  drone.on = true;
+  applyDroneWave();
+  drone.gain.gain.setTargetAtTime(droneLevel(), now, 0.05); // fade in, no click
+  drone.osc.start(now);
+  document.getElementById('droneBtn').textContent = '■ Drone Off';
+  document.getElementById('droneBtn').classList.add('on');
+  document.getElementById('card').classList.add('on');
+}
+
+function stopDrone() {
+  const now = ctx.currentTime;
+  const { osc, gain } = drone;
+  gain.gain.cancelScheduledValues(now);
+  gain.gain.setTargetAtTime(0, now, 0.05); // fade out, no click
+  osc.stop(now + 0.4);
+  osc.onended = () => gain.disconnect();
+  drone.on = false;
+  document.getElementById('droneBtn').textContent = '▶ Drone On';
+  document.getElementById('droneBtn').classList.remove('on');
+  document.getElementById('card').classList.remove('on');
+}
+
+function toggleDrone() { drone.on ? stopDrone() : startDrone(); }
+
+buildNoteGrid();
+updateDroneDisplay();
+</script>
+</body>
+</html>
