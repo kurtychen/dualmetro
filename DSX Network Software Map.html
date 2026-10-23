@@ -1,0 +1,921 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>DSX Network Software Map</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: drawing-sheet header and title block; findings; coverage bars by group; three-column network (builders left, software center, operators right, NVIDIA hub on top) beside a sticky evidence panel; then matrix, evidence log, method, sources. */
+:root{
+  --bg:#F2F4F0; --surface:#FBFCFA; --ink:#17201B; --muted:#5B6760; --rule:#D3DAD4; --soft:#E6EBE5;
+  --accent:#4C7612; --accent-ink:#FFFFFF;
+  --e-bi:#0E7A6E; --e-own:#B0560A; --e-use:#5148D6; --e-eco:#8C9791; --e-pp:#B4246A;
+  --font-display:"Barlow Condensed","Arial Narrow","Helvetica Neue",Arial,sans-serif;
+  --font-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --font-mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0F1411; --surface:#161C18; --ink:#E4EAE6; --muted:#98A39D; --rule:#2B342F; --soft:#1E2621;
+    --accent:#9CCB4C; --accent-ink:#0F1411;
+    --e-bi:#3CC2B1; --e-own:#F0A24A; --e-use:#9D97FF; --e-eco:#6D7973; --e-pp:#F27BB2;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0F1411; --surface:#161C18; --ink:#E4EAE6; --muted:#98A39D; --rule:#2B342F; --soft:#1E2621;
+  --accent:#9CCB4C; --accent-ink:#0F1411;
+  --e-bi:#3CC2B1; --e-own:#F0A24A; --e-use:#9D97FF; --e-eco:#6D7973; --e-pp:#F27BB2;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:15px;line-height:1.55;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:28px 56px}
+.wrap{max-width:1440px;margin:0 auto;display:grid;grid-template-columns:minmax(0,1fr);gap:40px}
+.wrap>*{min-width:0}
+a{color:inherit;text-decoration-color:var(--muted);text-underline-offset:2px}
+a:hover{text-decoration-color:var(--ink)}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.sheet{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:24px;align-items:end;border-bottom:2px solid var(--ink);padding-bottom:20px}
+.eyebrow{font-family:var(--font-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 0 6px}
+h1{font-family:var(--font-display);font-weight:700;font-size:clamp(38px,6vw,64px);line-height:.95;letter-spacing:-.01em;margin:0;text-wrap:balance}
+.lede{max-width:72ch;margin:12px 0 0}
+.tblock{border:1.5px solid var(--ink);font-family:var(--font-mono);font-size:11.5px;display:grid;grid-template-columns:auto auto;min-width:0}
+.tblock div{padding:5px 10px;border-bottom:1px solid var(--rule)}
+.tblock div:nth-child(odd){color:var(--muted);text-transform:uppercase;letter-spacing:.06em;border-right:1px solid var(--rule)}
+.tblock div:nth-last-child(-n+2){border-bottom:0}
+@media (max-width:760px){.sheet{grid-template-columns:1fr}.tblock{justify-self:start}}
+.stats{display:flex;flex-wrap:wrap;gap:8px 28px;margin-top:18px;font-size:14px}
+.stats span b{font-family:var(--font-display);font-size:24px;font-weight:700;margin-right:6px;font-variant-numeric:tabular-nums}
+
+h2{font-family:var(--font-display);font-weight:600;font-size:28px;letter-spacing:.005em;margin:0 0 4px;text-wrap:balance}
+.sec-note{color:var(--muted);margin:0 0 16px;max-width:78ch;font-size:14px}
+
+.findings{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px 28px;margin:0;padding:0;list-style:none}
+.findings li{border-top:1px solid var(--rule);padding-top:12px;min-width:0}
+.findings h3{font-family:var(--font-display);font-size:19px;font-weight:600;margin:0 0 4px;line-height:1.15}
+.findings p{margin:0;font-size:14.5px}
+
+/* Coverage */
+.cov{display:grid;gap:8px;max-width:980px}
+.covrow{display:grid;grid-template-columns:minmax(150px,240px) minmax(0,1fr) 44px;gap:12px;align-items:center;font-size:14px}
+.covrow .gname{font-family:var(--font-display);font-size:17px;font-weight:600;line-height:1.1}
+.covrow .gname small{display:block;font-family:var(--font-body);font-size:12px;font-weight:400;color:var(--muted)}
+.bar{display:flex;height:22px;border:1px solid var(--rule);background:var(--surface);min-width:0}
+.bar span{display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-size:11px;min-width:0;overflow:hidden}
+.bar .b-n{background:var(--e-bi);color:var(--surface)}
+.bar .b-e{background:repeating-linear-gradient(135deg,var(--e-eco) 0 3px,transparent 3px 6px);color:var(--ink)}
+.bar .b-0{background:transparent;color:var(--muted)}
+.bar em{font-style:normal;padding:0 4px;line-height:14px}
+.bar .b-e em{background:var(--surface);border-radius:2px}
+.covrow .tot{font-family:var(--font-mono);font-size:12px;color:var(--muted);text-align:right;font-variant-numeric:tabular-nums}
+.covkey{display:flex;gap:18px;flex-wrap:wrap;font-size:12.5px;color:var(--muted);margin-top:6px}
+.covkey i{display:inline-block;width:14px;height:10px;margin-right:6px;vertical-align:-1px;border:1px solid var(--rule)}
+@media (max-width:520px){.covrow{grid-template-columns:1fr 40px}.covrow .gname{grid-column:1 / -1}}
+
+/* Controls */
+.controls{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;margin-bottom:10px}
+.seg{display:inline-flex;border:1px solid var(--ink);border-radius:2px;overflow:hidden}
+.seg button{border:0;background:transparent;padding:5px 12px;font-size:13px;cursor:pointer}
+.seg button+button{border-left:1px solid var(--ink)}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.chk{display:inline-flex;gap:6px;align-items:center;font-size:13.5px;cursor:pointer}
+.find{display:inline-flex;gap:6px;align-items:center}
+.find input{font-size:14px;padding:5px 10px;border:1px solid var(--rule);background:var(--surface);border-radius:2px;width:220px;max-width:60vw}
+.legend{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.chip{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--rule);background:var(--surface);padding:5px 10px;font-size:13px;cursor:pointer;border-radius:2px}
+.chip[aria-pressed="false"]{opacity:.45;background:transparent}
+.chip .sw{width:22px;height:0;border-top:3px solid var(--c)}
+.chip .sw.dash{border-top-style:dashed;border-top-width:2px}
+.chip .sw.dot{border-top-style:dotted}
+.chip .n{font-family:var(--font-mono);font-size:11.5px;color:var(--muted)}
+
+.mapgrid{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:20px;align-items:start}
+@media (max-width:1150px){.mapgrid{grid-template-columns:minmax(0,1fr)}}
+.mapbox{border:1px solid var(--rule);background:var(--surface);overflow-x:auto}
+.mapbox svg{display:block;width:100%;min-width:900px;height:auto}
+.maptools{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-top:8px;font-size:12.5px;color:var(--muted)}
+.keydots{display:flex;gap:16px;flex-wrap:wrap;align-items:center}
+.keydots svg{vertical-align:middle;margin-right:4px}
+.btn{border:1px solid var(--ink);background:transparent;padding:4px 12px;cursor:pointer;font-size:13px;border-radius:2px}
+.btn:hover{background:var(--soft)}
+
+/* SVG */
+.e path.v{fill:none;stroke-linecap:round;stroke-linejoin:round}
+.e path.hit{fill:none;stroke:transparent;stroke-width:12;pointer-events:stroke;cursor:pointer}
+.e[data-type="bi"] path.v{stroke:var(--e-bi);stroke-width:2.4}
+.e[data-type="own"] path.v{stroke:var(--e-own);stroke-width:2.4}
+.e[data-type="use"] path.v{stroke:var(--e-use);stroke-width:1.8}
+.e[data-type="eco"] path.v{stroke:var(--e-eco);stroke-width:1.1;stroke-dasharray:4 4}
+.e[data-type="pp"] path.v{stroke:var(--e-pp);stroke-width:1.8;stroke-dasharray:2 3}
+svg.hide-bi .e[data-type="bi"],svg.hide-own .e[data-type="own"],svg.hide-use .e[data-type="use"],svg.hide-eco .e[data-type="eco"],svg.hide-pp .e[data-type="pp"]{display:none}
+svg.hide-bi .e.on[data-type="bi"],svg.hide-own .e.on[data-type="own"],svg.hide-use .e.on[data-type="use"],svg.hide-eco .e.on[data-type="eco"],svg.hide-pp .e.on[data-type="pp"]{display:inline}
+svg.sel .e:not(.on) path.v{opacity:.06}
+svg.sel .e.on[data-type="eco"] path.v{stroke:var(--muted);stroke-width:1.5}
+.node{cursor:pointer}
+.node .shape{stroke:var(--ink);stroke-width:1.5;fill:var(--surface)}
+.node.direct .shape{fill:var(--ink)}
+.node.none .shape{stroke-dasharray:2.2 2.2}
+.node .inner{fill:var(--ink)}
+.node .lbl{font-family:var(--font-display);font-size:15.5px;font-weight:500;fill:var(--ink)}
+.node .sub{font-family:var(--font-body);font-size:10.5px;fill:var(--muted)}
+.node .hitbox{fill:transparent}
+.node:hover .lbl{text-decoration:underline}
+.node.on .lbl{font-weight:700}
+.node:focus{outline:none}
+.node:focus-visible .shape,.node:focus-visible .pill{stroke:var(--accent);stroke-width:3}
+.node .pill{fill:var(--surface);stroke:var(--ink);stroke-width:1.3}
+.node .nvtab{fill:var(--accent)}
+.node .podtag rect{fill:none;stroke:var(--accent);stroke-width:1.2}
+.node .podtag text{font-family:var(--font-mono);font-size:9.5px;letter-spacing:.05em;fill:var(--accent)}
+svg.sel .node:not(.on){opacity:.28}
+.grp{font-family:var(--font-mono);font-size:10px;letter-spacing:.09em;fill:var(--muted)}
+.colhead{font-family:var(--font-display);font-size:15px;font-weight:700;letter-spacing:.1em;fill:var(--ink)}
+.hub rect{fill:var(--accent)}
+.hub .hname{font-family:var(--font-display);font-weight:700;font-size:30px;fill:var(--accent-ink)}
+.hub .hsub{font-family:var(--font-mono);font-size:10.5px;fill:var(--accent-ink);opacity:.92}
+.hub:focus-visible rect{stroke:var(--ink);stroke-width:3}
+svg.sel .hub:not(.on){opacity:.35}
+
+/* Panel */
+.panel{border:1px solid var(--ink);background:var(--surface);min-width:0;position:sticky;top:max(12px,env(safe-area-inset-top,0px));max-height:calc(100vh - 24px);overflow:auto}
+@media (max-width:1150px){.panel{position:static;max-height:none}}
+.ph{padding:14px 16px 12px;border-bottom:1px solid var(--rule)}
+.ph .k{font-family:var(--font-mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.ph h3{font-family:var(--font-display);font-size:28px;font-weight:700;margin:2px 0 2px;line-height:1.05}
+.ph .s{font-size:13.5px;color:var(--muted)}
+.ph .tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.pb{padding:12px 16px 18px;display:grid;gap:14px}
+.pill2{display:inline-block;font-family:var(--font-mono);font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;padding:2px 7px;border:1px solid currentColor;border-radius:2px;white-space:nowrap}
+.pill2.t-bi{color:var(--e-bi)}.pill2.t-own{color:var(--e-own)}.pill2.t-use{color:var(--e-use)}.pill2.t-eco{color:var(--muted)}.pill2.t-pp{color:var(--e-pp)}.pill2.t-nv,.pill2.t-np{color:var(--accent)}
+.pill2.c-direct{color:var(--ink);background:var(--soft)}.pill2.c-eco{color:var(--muted)}.pill2.c-none{color:var(--muted);border-style:dashed}
+.pill2.pod{color:var(--accent)}
+.role{display:inline-block;font-family:var(--font-mono);font-size:10.5px;padding:1px 6px;border-radius:2px;background:var(--soft);color:var(--ink);white-space:nowrap}
+.rel{border-left:3px solid var(--c,var(--rule));padding:2px 0 2px 12px;display:grid;gap:4px}
+.rel .top{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.rel .who{font-family:var(--font-display);font-size:18px;font-weight:600;background:none;border:0;padding:0;cursor:pointer;text-decoration:underline;text-decoration-color:var(--rule);text-underline-offset:3px;text-align:left}
+.rel .who:hover{text-decoration-color:var(--ink)}
+.rel .who.static{text-decoration:none;cursor:default}
+.rel .d{font-family:var(--font-mono);font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+.rel .tt{font-weight:600;font-size:14px}
+.rel p{margin:0;font-size:13.5px}
+.src{font-size:12px;color:var(--muted);display:flex;flex-direction:column;gap:2px}
+.gh{font-family:var(--font-mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--rule);padding-bottom:4px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips button{border:1px solid var(--rule);background:transparent;padding:3px 8px;font-size:12.5px;cursor:pointer;border-radius:2px}
+.chips button:hover{border-color:var(--ink)}
+.toplist{display:grid;gap:2px}
+.toplist button{display:flex;justify-content:space-between;gap:10px;align-items:baseline;border:0;border-bottom:1px solid var(--rule);background:transparent;padding:6px 0;cursor:pointer;text-align:left}
+.toplist button span:first-child{font-family:var(--font-display);font-size:18px;font-weight:600}
+.toplist button span:last-child{font-family:var(--font-mono);font-size:11.5px;color:var(--muted)}
+.toplist button:hover span:first-child{text-decoration:underline}
+.note{font-size:13px;color:var(--muted);margin:0}
+.rolegrid{display:grid;gap:10px}
+.rolegrid .rg b{font-family:var(--font-mono);font-size:11px;font-weight:500;letter-spacing:.04em;text-transform:uppercase}
+.rolegrid .rg b span{color:var(--muted)}
+
+/* Tables */
+.tbox{overflow-x:auto;border:1px solid var(--rule);background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:13.5px}
+th,td{padding:7px 10px;border-bottom:1px solid var(--rule);text-align:left;vertical-align:top}
+thead th{font-family:var(--font-mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:500;background:var(--soft)}
+.matrix td,.matrix th{text-align:center;white-space:nowrap}
+.matrix td:first-child,.matrix th:first-child,.matrix td.l,.matrix th.l{text-align:left}
+.matrix td.l{white-space:normal;min-width:150px}
+.matrix .gr td{background:var(--bg);font-family:var(--font-mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);text-align:left;padding:5px 10px}
+.matrix .pn{font-family:var(--font-display);font-size:16px;font-weight:600;background:none;border:0;padding:0;cursor:pointer;text-align:left}
+.matrix .pn:hover{text-decoration:underline}
+.matrix .pn .p{font-family:var(--font-mono);font-size:9.5px;color:var(--accent);margin-left:6px;letter-spacing:.05em}
+.matrix th.v{font-family:var(--font-display);font-size:14px;font-weight:600;letter-spacing:.02em;text-transform:none;color:var(--ink)}
+.matrix .oth{font-size:12.5px}
+.glyph{display:inline-block;vertical-align:middle}
+.ev td.d{font-family:var(--font-mono);font-size:12px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.ev td.r{font-family:var(--font-display);font-size:16px;font-weight:600;min-width:170px}
+.ev td.x{min-width:300px;max-width:600px}
+.ev td.s a{font-family:var(--font-mono);font-size:12px;margin-right:4px}
+.tools{display:flex;gap:10px 14px;flex-wrap:wrap;margin-bottom:10px;align-items:center}
+.tools input[type=search],.tools select{font-size:14px;padding:6px 10px;border:1px solid var(--rule);background:var(--surface);border-radius:2px}
+.tools input[type=search]{min-width:0;flex:1 1 220px;max-width:360px}
+.tools .cnt{font-family:var(--font-mono);font-size:12px;color:var(--muted)}
+.srcs{columns:2 380px;column-gap:32px;font-size:13px;padding-left:30px;margin:0}
+.srcs li{break-inside:avoid;margin-bottom:6px}
+.method{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px 28px;font-size:14px}
+.method p{margin:0}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="sheet">
+      <div>
+        <p class="eyebrow">NVIDIA DSX AI factory platform · Oct 2025 to Oct 2026</p>
+        <h1>DSX Network Software Map</h1>
+        <p class="lede">Every company NVIDIA has named in its DSX announcements, from the 17 DSX POD builders to clouds, developers, power and cooling suppliers and grid partners, and the software vendors each one works with. Vendors that partner with NVIDIA directly are marked. Every line links to dated public evidence.</p>
+      </div>
+      <div class="tblock" aria-label="Sheet details">
+        <div>Sheet</div><div>Ecosystem map</div>
+        <div>Rev.</div><div>2 · 2026-10-23</div>
+        <div>Scope</div><div>Full DSX network</div>
+        <div>Supersedes</div><div>Rev. 1 · 17 DSX POD partners</div>
+      </div>
+    </div>
+    <div class="stats" id="stats"></div>
+  </header>
+
+  <section aria-labelledby="m-h">
+    <h2 id="m-h">Relationship map</h2>
+    <p class="sec-note">Builders and suppliers sit on the left, operators, clouds and grid partners on the right, and software vendors in the middle. A green edge on a vendor marks a direct NVIDIA DSX tie. Select a company or a line to see the evidence. Ecosystem links rest on one NVIDIA statement, so they start hidden.</p>
+    <div class="controls">
+      <div class="seg" role="group" aria-label="Scope">
+        <button type="button" id="sc-all" aria-pressed="true">Full DSX network</button>
+        <button type="button" id="sc-pod" aria-pressed="false">DSX POD partners</button>
+      </div>
+      <label class="chk" for="hidenone"><input type="checkbox" id="hidenone"> Hide companies without a software tie</label>
+      <div class="find"><label for="findin" class="note">Find</label><input id="findin" list="names" placeholder="Company name" autocomplete="off"><datalist id="names"></datalist></div>
+    </div>
+    <div class="legend" id="legend" role="group" aria-label="Relationship types"></div>
+    <div class="mapgrid">
+      <div style="min-width:0">
+        <div class="mapbox"><svg id="map" viewBox="0 0 1180 1400" role="img" aria-label="Network of NVIDIA DSX partners and software vendors"></svg></div>
+        <div class="maptools">
+          <div class="keydots">
+            <span><svg width="14" height="14" aria-hidden="true"><circle cx="7" cy="7" r="5.5" fill="var(--ink)" stroke="var(--ink)" stroke-width="1.5"/></svg>Named software tie</span>
+            <span><svg width="14" height="14" aria-hidden="true"><circle cx="7" cy="7" r="5.5" fill="var(--surface)" stroke="var(--ink)" stroke-width="1.5"/><circle cx="7" cy="7" r="2" fill="var(--ink)"/></svg>Ecosystem link only</span>
+            <span><svg width="14" height="14" aria-hidden="true"><circle cx="7" cy="7" r="5.5" fill="var(--surface)" stroke="var(--ink)" stroke-width="1.5" stroke-dasharray="2.2 2.2"/></svg>None found</span>
+            <span><svg width="30" height="14" aria-hidden="true"><rect x="1" y="1" width="28" height="12" fill="none" stroke="var(--accent)" stroke-width="1.2" rx="1"/><text x="15" y="10" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="8.5" fill="var(--accent)">POD</text></svg>DSX POD partner</span>
+            <span><svg width="26" height="14" aria-hidden="true"><rect x="1" y="1" width="24" height="12" fill="var(--surface)" stroke="var(--ink)" stroke-width="1.2"/><rect x="1" y="1" width="4" height="12" fill="var(--accent)"/></svg>Vendor with a direct NVIDIA tie</span>
+          </div>
+          <button class="btn" id="reset" type="button">Clear selection</button>
+        </div>
+      </div>
+      <aside class="panel" id="panel" aria-live="polite"></aside>
+    </div>
+  </section>
+
+  <section aria-labelledby="f-h">
+    <h2 id="f-h">What the map shows</h2>
+    <ul class="findings" id="findings">
+      <li><h3>Four design vendors anchor the builder side</h3><p>Dassault Systèmes, Cadence, Siemens and PTC all partner with NVIDIA on DSX, and they hold most of the named ties to equipment makers, system builders and Switch. Dassault Systèmes leads on configurators (Vertiv, QCT, Pegatron) and Cadence on thermal twins (HPE, Foxconn, Switch).</p></li>
+      <li><h3>Emerald AI is the hub on the grid side</h3><p>It has more named ties than any other vendor: Digital Realty, Nebius and Nscale; the grid bodies EPRI, National Grid, PJM and Silicon Valley Power; five power producers; and investments from Eaton and GE Vernova. DSX Flex runs through it.</p></li>
+      <li><h3>DSX partners are buying software companies</h3><p>Schneider Electric owns AVEVA and ETAP and has agreed to buy PTC. IREN completed its purchase of Mirantis, a DSX OS integrator, on Aug 4, 2026. Trane owns BrainBox AI.</p></li>
+      <li><h3>Most AI clouds have no outside software tie on record</h3><p>Only 5 of 24 AI clouds have one: CoreWeave, IREN, Nscale, Nebius and Aolani, through VAST Data, Mirantis, BE Networks, Phaidra, Emerald AI and Rafay. The rest appear only as adopters of NVIDIA’s own DSX OS, MaxLPS or DSX Air.</p></li>
+    </ul>
+  </section>
+
+  <section aria-labelledby="c-h">
+    <h2 id="c-h">Software coverage by group</h2>
+    <p class="sec-note">Share of DSX companies in each group with a named software tie (partnership, ownership or documented tool use), an ecosystem link only, or none found.</p>
+    <div class="cov" id="cov"></div>
+    <div class="covkey"><span><i style="background:var(--e-bi);border-color:var(--e-bi)"></i>Named software tie</span><span><i style="background:repeating-linear-gradient(135deg,var(--e-eco) 0 3px,transparent 3px 6px)"></i>Ecosystem link only</span><span><i></i>None found</span></div>
+  </section>
+
+  <section aria-labelledby="x-h">
+    <h2 id="x-h">Partner × vendor matrix</h2>
+    <p class="sec-note">One row per DSX company. Columns are the vendors with the most ties; smaller vendors are grouped under Other. The DSX role column shows how each company takes part in NVIDIA’s platform.</p>
+    <div class="tools">
+      <select id="mgroup" aria-label="Filter matrix by group"></select>
+      <label class="chk" for="mties"><input type="checkbox" id="mties"> Only companies with a software tie</label>
+      <span class="cnt" id="mcnt"></span>
+    </div>
+    <div class="tbox"><table class="matrix" id="matrix"></table></div>
+  </section>
+
+  <section aria-labelledby="e-h">
+    <h2 id="e-h">Evidence log</h2>
+    <p class="sec-note">Every relationship, including each company’s DSX role with NVIDIA, with date and sources. Numbers in brackets point to the source list below.</p>
+    <div class="tools">
+      <input id="q" type="search" placeholder="Search companies or text" aria-label="Search evidence">
+      <select id="tf" aria-label="Filter by relationship type"></select>
+      <span class="cnt" id="cnt"></span>
+    </div>
+    <div class="tbox"><table class="ev" id="ev"></table></div>
+  </section>
+
+  <section aria-labelledby="mt-h">
+    <h2 id="mt-h">Method and limits</h2>
+    <div class="method">
+      <p>The DSX network is every company NVIDIA has named in DSX announcements from the Omniverse DSX Blueprint launch (Oct 28, 2025) to GTC Berlin (Oct 21, 2026), plus companies that announced DSX adoption themselves, such as Switch, ABB, Flex, Aolani and BE Networks. NVIDIA’s DSX Sim, Air, OS, Flex and Ready pages were checked for partner lists.</p>
+      <p>A tie counts only when a public source names both companies together. A named partnership is a joint announcement. Documented tool use is a case study or a published stack that names the vendor. Ownership covers subsidiaries, completed or pending acquisitions, and strategic investments. Ecosystem links come from NVIDIA statements that list several companies at once.</p>
+      <p>Not covered: the 2,000+ SimReady assets on Hugging Face, whose contributors are mostly unnamed; NVIDIA Partner Network members with no DSX mention; and vendor-to-vendor ties such as Siemens’ investment in Emerald AI. No DSX-specific tie was found for Autodesk, Bentley Systems, Hexagon or Trimble.</p>
+      <p>“None found” means no public record as of Oct 23, 2026. Many cloud partners appear only once, in NVIDIA’s lists of DSX OS or MaxLPS adopters. In-house platforms (Foxconn FODT, Pegatron PEGAVERSE, Wistron AIF-DT, Delta DIATwin, Eaton Brightlayer, Hitachi Energy’s energy management system, Siemens Energy Noedra, Switch LDC EVO) are noted on each company but not drawn as vendors.</p>
+    </div>
+  </section>
+
+  <section aria-labelledby="s-h">
+    <h2 id="s-h">Sources</h2>
+    <ol class="srcs" id="srcs"></ol>
+  </section>
+</div>
+
+<script>
+(function(){
+// ---------------- Sources ----------------
+const S = {
+ pod:["NVIDIA: Introduces DSX POD AI factories (Oct 21, 2026)","https://nvidianews.nvidia.com/news/nvidia-introduces-dsx-pod-ai-factories-to-accelerate-europes-infrastructure-deployment"],
+ euDSX:["NVIDIA: European ecosystem builds AI factories with DSX (Oct 21, 2026)","https://nvidianews.nvidia.com/news/european-ecosystem-builds-worlds-most-efficient-ai-factories-with-nvidia-dsx"],
+ dsxPlat:["NVIDIA: DSX gives infrastructure builders the playbook (May 31, 2026)","https://investor.nvidia.com/news/press-release-details/2026/NVIDIA-DSX-Gives-Infrastructure-Builders-the-Playbook-for-AI-Factories/default.aspx"],
+ rubinDSX:["NVIDIA: Vera Rubin DSX reference design and Omniverse DSX Blueprint (Mar 16, 2026)","https://investor.nvidia.com/news/press-release-details/2026/NVIDIA-Releases-Vera-Rubin-DSX-AI-Factory-Reference-Design-and-Omniverse-DSX-Digital-Twin-Blueprint-With-Broad-Industry-Support/default.aspx"],
+ gtcdc:["NVIDIA: Partners build America’s AI infrastructure; AI Factory Research Center (Oct 28, 2025)","https://investor.nvidia.com/news/press-release-details/2025/NVIDIA-and-Partners-Build-Americas-AI-Infrastructure-and-Create-Blueprint-to-Power-the-Next-Industrial-Revolution/default.aspx"],
+ dsxBlog:["NVIDIA Blog: Omniverse DSX Blueprint launch (Oct 28, 2025)","https://blogs.nvidia.com/blog/omniverse-dsx-blueprint"],
+ dsxAir:["NVIDIA Blog: DSX Air boosts time to token (Mar 16, 2026)","https://blogs.nvidia.com/blog/dsx-air-simulation-ai-factories"],
+ dsxSimPage:["NVIDIA: DSX Sim product page and ecosystem","https://www.nvidia.com/en-us/data-center/products/dsx/sim/"],
+ dsxOSblog:["NVIDIA Developer: DSX OS for operating AI factories at scale (May 31, 2026)","https://developer.nvidia.com/blog/nvidia-dsx-os-delivers-open-modular-software-for-operating-ai-factories-at-scale/"],
+ agentDT:["NVIDIA Developer: AI factory digital twin with an agent-assisted workflow (Oct 21, 2026)","https://developer.nvidia.com/blog/?p=123879"],
+ bpExpand:["NVIDIA Blog: Omniverse Blueprint for AI factory twins expands (Computex 2025)","https://blogs.nvidia.com/blog/omniverse-blueprint-ai-factories-expands"],
+ simreadyDev:["NVIDIA Developer: Designing AI factories with OpenUSD and SimReady assets (2025)","https://developer.nvidia.com/blog/designing-ai-factories-using-openusd-and-simready-assets"],
+ grid_blog:["NVIDIA Blog: Energy leaders accelerating power-flexible AI factories (Mar 31, 2026)","https://blogs.nvidia.com/blog/energy-efficiency-ai-factories-grid/"],
+ australia:["NVIDIA: AI infrastructure with Australia’s data center ecosystem (Sep 9, 2026)","https://investor.nvidia.com/news/press-release-details/2026/NVIDIA-Expands-AI-Infrastructure-Capacity-in-Partnership-With-Australias-Data-Center-Ecosystem/default.aspx"],
+ iren:["NVIDIA: Strategic partnership with IREN on up to 5 GW (May 7, 2026)","https://investor.nvidia.com/news/press-release-details/2026/NVIDIA-and-IREN-Announce-Strategic-Partnership-to-Accelerate-Deployment-of-up-to-5-Gigawatts-of-AI-Infrastructure/default.aspx"],
+ sbe:["NVIDIA 8-K exhibit: SB Energy PORTS-Pike campus on DSX (Aug 17, 2026)","https://www.sec.gov/Archives/edgar/data/0001045810/000104581026000069/sbeoainvidia-portsrelease.htm"],
+ nv8k:["NVIDIA Q2 FY2027 results: Korea DSX partnerships with SK Telecom, NAVER, Brookfield","https://www.sec.gov/Archives/edgar/data/0001045810/000104581026000073/q2fy27pr.htm"],
+ ds_vertiv:["Dassault Systèmes: Dassault Systèmes and Vertiv team on AI factory design (Oct 22, 2026)","https://www.3ds.com/newsroom/press-releases/dassault-systemes-and-vertiv-team-accelerate-ai-factory-design-and-deployment"],
+ vertiv_smartrun:["Vertiv: First converged infrastructure digital twin for Omniverse DSX (Jun 2026)","https://www.vertiv.com/en-emea/about/news-and-events/news-releases/2026/vertiv-introduces-first-converged-physical-infrastructure-digital-twin-for-nvidia-omniverse-dsx/"],
+ itbrief_vertiv:["IT Brief: Vertiv launches AI factory digital twin with NVIDIA (Jun 2026)","https://itbrief.co.uk/story/vertiv-launches-ai-factory-digital-twin-with-nvidia"],
+ ds_blog:["Dassault Systèmes blog: AI factory virtual twins, QCT and Vertiv (Jun 1, 2026)","https://blog.3ds.com/topics/company-news/ai-factory-virtual-twins"],
+ itbrief_ds:["IT Brief: NVIDIA and Dassault partner on industrial AI twins (Feb 4, 2026)","https://itbrief.co.uk/story/nvidia-dassault-partner-to-build-industrial-ai-twins"],
+ cad_hpe:["Cadence: Digital twin–driven AI modernization with HPE (Jun 16, 2026)","https://community.cadence.com/cadence_blogs_8/b/data-center/posts/cadence-accelerates-digital-twin-driven-data-center-ai-modernization-with-hpe"],
+ hpcw_hpe:["HPCwire: Cadence and HPE digital twin release (Jun 2026)","https://www.hpcwire.com/off-the-wire/cadence-accelerates-digital-twin-driven-data-center-ai-modernization-with-hpe/"],
+ dcd_cad:["DCD: Cadence launches data center digital twin offering (Mar 2024)","https://www.datacenterdynamics.com/en/news/cadence-launches-data-center-digital-twin-offering/"],
+ cad_tb:["Cadence: Reality Digital Twin and NVIDIA Omniverse integration brief (Mar 2026)","https://www.cadence.com/ko_KR/home/resources/technical-briefs/cadence-reality-digital-twin-platform-and-nvidia-omniverse-integration-tb.html"],
+ cad_dgx:["Cadence: DGX SuperPOD model added to Reality library (Sep 2025)","https://www.nasdaq.com/press-release/cadence-expands-digital-twin-platform-library-nvidia-dgx-superpod-model-accelerate-ai"],
+ se_mar:["Schneider Electric: Validated AI factory blueprints with NVIDIA and AVEVA (Mar 17, 2026)","https://www.bnnbloomberg.ca/press-releases/2026/03/17/schneider-electric-teams-with-nvidia-to-develop-validated-blueprints-to-design-simulate-build-operate-and-maintain-gigawatt-scale-ai-factories/"],
+ se_etap:["Plant Automation Technology: Schneider Electric teams with NVIDIA (ETAP, AVEVA details)","https://www.plantautomation-technology.com/pressreleases/schneider-electric-teams-with-nvidia-to-develop"],
+ aveva_icn:["Indian Chemical News: AVEVA and NVIDIA team up on AI factories (Mar 18, 2026)","https://www.indianchemicalnews.com/digitization/lite/aveva-and-nvidia-team-up-to-power-next-gen-ai-factories-29733"],
+ se_ptc_ia:["InsideArbitrage: Schneider Electric acquires PTC (Oct 5, 2026)","https://www.insidearbitrage.com/2026/10/schneider-electric-acquires-ptc-for-23-7-billion-in-cash/?c=ia&s1=tw"],
+ se_ptc_dn:["Design News: Schneider Electric nabs PTC to drive industrial AI (Oct 7, 2026)","https://www.designnews.com/automation/schneider-electric-nabs-ptc-for-22-6b-to-drive-industrial-ai"],
+ dcf_blueprint:["Data Center Frontier: NVIDIA and partners define a repeatable AI factory blueprint (Dec 17, 2025)","https://www.datacenterfrontier.com/design/article/55338673/nvidia-and-partners-define-a-repeatable-blueprint-for-ai-factory-data-centers"],
+ eaton_adsk:["Data Center Frontier: Eaton–Autodesk digital energy twins (Sep 2025)","https://www.datacenterfrontier.com/design/article/55320074/new-partnerships-form-to-deploy-digital-energy-twins-in-data-centers"],
+ eaton_beam:["Eaton: Beam Rubin DSX platform with NVIDIA (Mar 16, 2026)","https://www.businesswire.com/news/home/20260316466878/en/Eaton-collaborates-with-NVIDIA-to-unveil-the-Eaton-Beam-Rubin-DSX-platform-to-address-the-nearly-7-trillion-data-center-buildout-market-from-grid-to-chip"],
+ eaton_se:["Business Wire: Eaton and Siemens Energy join forces on data center capacity (Jun 3, 2025)","https://www.businesswire.com/news/home/20250603550645/en/Eaton-and-Siemens-Energy-Join-Forces-to-Provide-Power-and-Technology-to-Accelerate-the-Delivery-of-New-Data-Center-Capacity/"],
+ emerald_esg:["ESG Today: Emerald AI raises $25M; Eaton, GE Vernova, Siemens join as strategic investors","https://www.esgtoday.com/emerald-ai-raises-25-million-to-align-data-center-energy-use-with-grid-capacity/"],
+ fox_case:["NVIDIA case study: Foxconn smart factories with digital twins","https://www.nvidia.com/en-us/case-studies/foxconn-develops-physical-ai-enabled-smart-factories-with-digital-twins/"],
+ tw_blog:["NVIDIA Blog: Omniverse digital twins and Taiwan manufacturers (Computex 2025)","https://blogs.nvidia.com/blog/omniverse-digital-twins-taiwan-manufacturers-physical-ai"],
+ bull_fox:["HPCwire: Bull and Foxconn partner on European AI infrastructure (Jun 1, 2026)","https://www.hpcwire.com/off-the-wire/bull-and-foxconn-partner-to-scale-europes-manufacturing-capabilities-for-ai-infrastructure/"],
+ bull_fox2:["StorageNewsletter: Bull and Foxconn build Vera Rubin NVL72 in Europe (Jun 2026)","https://www.storagenewsletter.com/2026/06/25/bull-and-foxconn-advance-european-ai-infrastructure-with-nvidia-vera-rubin-nvl72-platform-built-in-europe/"],
+ siemens_dsx:["Siemens: Engineering the AI factory with NVIDIA DSX (Mar 16, 2026)","https://www.siemens.com/en-us/company/insights/us-stories/siemens-delivers-nvidia-dsx-infrastructure-ai-factory/"],
+ siemens_ces:["Robotics 24/7: Siemens and NVIDIA expand partnership (CES 2026)","https://www.robotics247.com/article/ces-2026-siemens-nvidia-expand-partnership-to-build-industrial-ai-operating-system"],
+ siemens_nvent:["AI Magazine: Siemens and nVent unveil 100 MW AI data centre blueprint (Dec 15, 2025)","https://aimagazine.com/news/siemens-and-nvent-unveil-100mw-ai-data-centre-blueprint"],
+ siemens_fluence:["IT Brief: Siemens AI data centre blueprint with Fluence, aligned with DSX (Jun 2, 2026)","https://itbrief.co.uk/story/siemens-unveils-ai-data-centre-blueprint-with-fluence"],
+ ptc_scene:["PTC: SceneLink beta connects Windchill to NVIDIA Omniverse (Oct 20, 2026)","https://www.ptc.com/en/blogs/plm/scenelink-beta-now-available"],
+ procore:["Procore: Accelerating construction of AI factories with NVIDIA (Mar 16, 2026)","https://www.procore.com/press/procore-accelerates-the-construction-of-ai-factories-with-nvidia"],
+ phaidra:["Phaidra: AI agents for gigawatt-scale AI factories","https://phaidra.ai/blog/phaidra-nvidia-ai-agents-for-gigawatt-scale-ai-factories"],
+ phaidra_cw:["Phaidra: AI-driven liquid cooling with DSX Max-Q and CoreWeave (Mar 16, 2026)","https://www.phaidra.ai/blog/breakthrough-AI-driven-liquid-cooling-management"],
+ jacobs:["Jacobs: Releases digital twin solution for AI data centers (Mar 16, 2026)","https://www.jacobs.com/node/4246"],
+ bechtel:["Bechtel: Accelerating AI data center construction with NVIDIA (Oct 28, 2025)","https://www.bechtel.com/press-releases/bechtel-to-accelerate-ai-data-center-construction-with-nvidia/"],
+ flex:["Flex: AI factory reference designs for Omniverse DSX (Mar 16, 2026)","https://www.nasdaq.com/press-release/flex-accelerates-ai-factory-deployment-nvidia-omniverse-dsx-reference-designs-2026-03"],
+ abb:["ABB: Integration of DSX Blueprint for AI infrastructure (Jun 1, 2026)","https://new.abb.com/news/detail/136274/abb-expands-collaboration-with-nvidia-through-integration-of-dsx-blueprint-for-ai-infrastructure"],
+ trane_rd:["Trane Technologies: New Rubin DSX thermal reference designs (Mar 16, 2026)","https://investors.tranetechnologies.com/news-and-events/news-releases/news-release-details/2026/Trane-Technologies-Optimizes-IndustryFirst-Thermal-Management-Reference-Design-for-AI-Factories-Introduces-Two-New-Designs/default.aspx"],
+ trane_brainbox:["ACHR News: Trane plans to acquire BrainBox AI (Dec 18, 2024)","https://www.achrnews.com/articles/163885-trane-plans-to-acquire-brainbox-ai"],
+ trane_lab:["Business Wire: Trane Technologies launches BrainBox AI Lab (Aug 12, 2025)","https://www.businesswire.com/news/home/20250812376137/en/trane-technologies-launches-brainbox-ai-lab-to-transform-energy-management-and-sustainability-in-buildings"],
+ vertiv_rubin:["Stock Titan: Vertiv converged infrastructure for Vera Rubin DSX (Mar 16, 2026)","https://www.stocktitan.net/news/VRT/vertiv-brings-converged-physical-infrastructure-to-nvidia-vera-rubin-65nzzmy50bmb.html"],
+ vertiv_polar:["Vertiv: DSX approach deployed by Polar at Norway site (Oct 21, 2026)","https://www.vertiv.com/en-emea/about/news-and-events/news-releases/2026/vertiv-targets-up-to-30-more-cumulative-ai-token-output-in-first-12-months-using-nvidia-dsx-polar-deploys-approach-at-norway-site/"],
+ vertiv_hut8:["Vertiv: Digitally orchestrated infrastructure, collaboration with Hut 8 (Feb 26, 2026)","https://investors.vertiv.com/news/news-details/2026/Vertiv-Industrializes-AI-Deployment-with-Digitally-Orchestrated-Infrastructure-Collaborates-with-Hut-8-to-Scale/"],
+ vertiv_cat:["Vertiv: Energy optimization collaboration with Caterpillar (Nov 18, 2025)","https://investors.vertiv.com/news/news-details/2025/Vertiv-and-Caterpillar-Announce-Energy-Optimization-Collaboration-to-Expand-End-to-End-Power-and-Cooling-Offerings-for-AI-Data-Centers/default.aspx"],
+ delta_gtc:["Taiwan News: Delta at NVIDIA GTC 2026 (Mar 2026)","https://www.taiwannews.com.tw/news/6322427"],
+ wistron:["I-Connect007: Wistron adopts NVIDIA Omniverse DSX (Jun 10, 2026)","https://iconnect007.com/article/150350/wistron-adopts-nvidia-omniverse-dsx-to-accelerate-digital-factory-operations/150347/design"],
+ gigabyte:["GIGABYTE: What is NVIDIA DSX","https://www.gigabyte.com/glossary/nvidia-dsx"],
+ lenovo:["Barchart: Lenovo AI Cloud Gigafactory with NVIDIA (CES 2026)","https://www.barchart.com/story/news/36917391/lenovo-teams-with-nvidia-on-gigawatt-ai-factories-program-to-accelerate-enterprise-ai"],
+ asus:["ASUS: NVIDIA DSX for Vera Rubin AI factory deployment (Jun 2026)","https://servers.asus.com/insight/asus-nvidia-dsx-vera-rubin-ai-factory-deployment"],
+ dayone:["DayOne: Joins NVIDIA Partner Network as Data Center Partner","https://dayonedc.com/headliners/dayone-joins-the-nvidia-partner-network-as-a-data-center-partner-dcp/"],
+ armada:["Armada: Leverages NVIDIA DSX Air (Mar 16, 2026)","https://www.armada.ai/blog/armada-nvidia-dsx-air-ai-factory-simulation"],
+ hitachi_ready:["Hitachi Energy: BESS qualifies as NVIDIA DSX Ready (Sep 22, 2026)","https://www.hitachienergy.com/news-and-events/features/2026/09/hitachi-energy-s-battery-energy-storage-system-qualifies-as-nvidia-dsx-ready-bess"],
+ bess_ready:["UAnalyze: First DSX Ready BESS qualifiers Hitachi Energy, LG Energy Solution, Tesla (Sep 2026)","https://uanalyze.com.tw/articles/8560756205"],
+ fortune_em:["Fortune: Emerald AI and NVIDIA power-producer partners (Mar 31, 2026)","https://fortune.com/2026/03/31/emerald-ai-nvidia-fast-pass-data-center-grid-connects/"],
+ aurora:["American Public Power Association: Aurora power-flexible AI factory coalition (Oct 30, 2025)","https://www.publicpower.org/node/28624"],
+ ng_trial:["National Grid: UK-first AI grid trial with Emerald AI and Nebius (Mar 2, 2026)","https://www.nationalgrid.com/uk-first-trial-ai-grid-technology-successfully-demonstrates-ability-data-centres-adjust-power-needs"],
+ svp_pilot:["BeBeez/DCD: Emerald AI pilot with Silicon Valley Power (Apr 21, 2026)","https://bebeez.eu/2026/04/21/emerald-ai-to-conduct-pilot-program-with-silicon-valley-power-in-santa-clara-california/"],
+ iren_be:["Engineering.com: BE Networks and IREN simulate a Blackwell Ultra AI cloud in DSX Air (Jun 2, 2026)","https://www.engineering.com/be-networks-iren-simulate-blackwell-ultra-ai-cloud/"],
+ iren_mirantis:["IREN: Completes acquisition of Mirantis (Aug 4, 2026)","https://iren.gcs-web.com/news-releases/news-release-details/iren-completes-acquisition-mirantis"],
+ mirantis_dsx:["Mirantis: k0rdent AI and NVIDIA DSX OS (Jun 1, 2026)","https://www.mirantis.com/blog/mirantis-and-nvidia-dsx-os-powering-the-next-generation-of-ai-factories/"],
+ aolani:["IT Brief: Aolani and Rafay deploy NVIDIA DSX OS on GB200 NVL72 (Jul 30, 2026)","https://itbrief.com.au/story/aolani-rafay-deploy-nvidia-dsx-os-on-gb200-nvl72"],
+ vast_cw:["Seeking Alpha/Reuters: VAST Data secures $1.17B deal with CoreWeave (Nov 6, 2025)","https://seekingalpha.com/news/4517361-nvidia-backed-vast-data-secures-117b-ai-deal-with-coreweave-reuters"],
+ vast_nscale:["GlobeNewswire: Nscale and VAST Data unite to build the global fabric for AI (Oct 29, 2025)","https://www.globenewswire.com/news-release/2025/10/29/3176623/0/en/Nscale-and-VAST-Data-Unite-to-Build-the-Global-Fabric-for-AI-Accelerated-by-NVIDIA.html"],
+ switch:["Switch: Integrates Omniverse DSX Blueprint into EVO AI factories (Mar 16, 2026)","https://www.switch.com/switch-integrates-nvidia-omniverse-dsx-blueprint-into-switchs-evo-ai-factories/"],
+ dlr:["Digital Realty: Supporting NVIDIA AI Factory Research Center and DSX Blueprint (Nov 3, 2025)","https://investor.digitalrealty.com/news-releases/news-release-details/digital-realty-advances-ai-infrastructure-innovation-supporting"],
+ dcr_sim:["Data Center Richness: NVIDIA DSX, data centers meet the simulation (May 21, 2026)","https://datacenterrichness.substack.com/p/nvidia-dsx-data-centers-meet-the"],
+ lancium:["Unite.AI: Lancium and NVIDIA partner to deploy gigawatt-scale AI factories (Aug 24, 2026)","https://www.unite.ai/lancium-and-nvidia-partner-to-deploy-gigawatt-scale-ai-factories/"],
+ tnw_land:["The Next Web: NVIDIA buys into Cloverleaf, Lancium and SB Energy (Aug 24, 2026)","https://thenextweb.com/news/nvidia-cloverleaf-lancium-sb-energy-land-power-dsx"],
+ dcd_clover:["DCD: NVIDIA backs powered-land company Cloverleaf (Aug 2026)","https://www.datacenterdynamics.com/en/news/nvidia-backs-data-center-powered-land-company-cloverleaf/"],
+ nscale_cat:["AAP/Cision: Nscale, Microsoft, NVIDIA and Caterpillar in West Virginia (Mar 17, 2026)","https://www.aap.com.au/aapreleases/cision20260316ae11294"],
+ skt:["Pulse 2.0: NVIDIA and SK Telecom plan gigawatt-scale AI cloud on DSX (Jun 8, 2026)","https://pulse2.com/nvidia-and-sk-telecom-gigawatt-scale-ai-cloud-planned-to-power-koreas-ai-innovation/"],
+ crusoe:["Crusoe: Expands NVIDIA collaboration across the AI factory stack (Mar 16, 2026)","https://www.crusoe.ai/resources/newsroom/crusoe-expands-nvidia-collaboration"]
+};
+const SRC_KEYS = Object.keys(S); const SRC_NUM = {}; SRC_KEYS.forEach((k,i)=>SRC_NUM[k]=i+1);
+
+// ---------------- Types & roles ----------------
+const TYPES = {
+ bi:{label:"Named partnership",short:"Partnership",c:"--e-bi",cls:""},
+ own:{label:"Ownership / investment",short:"Ownership",c:"--e-own",cls:""},
+ use:{label:"Documented tool use",short:"Tool use",c:"--e-use",cls:""},
+ eco:{label:"Ecosystem link (NVIDIA-stated)",short:"Ecosystem",c:"--e-eco",cls:"dash"},
+ pp:{label:"Partner ↔ partner",short:"Partner–partner",c:"--e-pp",cls:"dot"},
+ nv:{label:"NVIDIA ↔ software vendor",short:"NVIDIA–vendor",c:"--accent",cls:""},
+ np:{label:"NVIDIA ↔ DSX company (role)",short:"DSX role",c:"--accent",cls:""}
+};
+const MAP_TYPES = ["bi","own","use","pp","eco"];
+const TYPE_ORDER = ["nv","np","bi","own","use","pp","eco"];
+const ROLES = {POD:"DSX POD",REF:"Reference design",SIM:"Blueprint / Sim / SimReady",SYS:"DSX-ready systems",MAX:"MaxLPS / Max-Q",FLEX:"DSX Flex",OS:"DSX OS",AIR:"DSX Air",READY:"DSX Ready",SITE:"DSX site",GEN:"Generation partner",NAT:"National buildout"};
+const ROLE_SHORT = {POD:"POD",REF:"Ref",SIM:"Sim",SYS:"Systems",MAX:"MaxLPS",FLEX:"Flex",OS:"OS",AIR:"Air",READY:"Ready",SITE:"Site",GEN:"Gen",NAT:"National"};
+
+// ---------------- Nodes ----------------
+// partners: [id, name, sub, note, roles, npText, npDate, npSrc]
+const PG = [
+ ["L","Power & cooling equipment",[
+  ["schneider","Schneider Electric","Power, cooling, prefab modules","Owns AVEVA, ETAP and RIB Software; bought Cognite in 2026; EcoStruxure IT Design CFD",["POD","REF","SIM"],"DSX POD partner. Vera Rubin NVL72 power and cooling reference design validated with ETAP and EcoStruxure IT Design CFD; SimReady assets and the AVEVA lifecycle twin in the DSX Blueprint.","2026-10-21",["pod","se_mar","euDSX"]],
+  ["vertiv","Vertiv","Power, cooling, OneCore prefab","SmartRun and OneCore SimReady models; Unify software",["POD","REF","SIM","READY"],"DSX POD partner. Vertiv OneCore Rubin DSX converged infrastructure; SimReady assets in SimReady Central; 2.3 MW CoolChip CDU qualified as DSX Ready.","2026-10-21",["pod","vertiv_rubin","euDSX"]],
+  ["eaton","Eaton","Grid-to-chip power, Beam Rubin DSX","Brightlayer energy software",["POD","REF","SIM"],"DSX POD partner. Eaton Beam Rubin DSX platform with SimReady assets; joint grid-to-chip design with Trane for the Vera Rubin DSX reference design.","2026-10-21",["pod","eaton_beam","euDSX"]],
+  ["delta","Delta Electronics","Power, liquid cooling, 800 VDC","DIATwin digital twin built on Omniverse",["POD","SIM"],"DSX POD partner. Adds equipment models to NVIDIA’s AI factory blueprint; 800 VDC power, liquid cooling and microgrid portfolio.","2026-10-21",["pod","bpExpand","delta_gtc"]],
+  ["abb","ABB","MV switchgear, UPS, 800 VDC","",["SIM","REF"],"Adding medium-voltage switchgear, distribution and UPS platforms to the Omniverse DSX Blueprint as SimReady assets; developing SimReady assets with DSX Sim and 800 VDC through its Infinitus DC portfolio.","2026-06-01",["abb","euDSX"]],
+  ["trane","Trane Technologies","Thermal management, chillers, CDUs","Owns LiquidStack (CDUs) and BrainBox AI",["REF","SIM","READY"],"Seven thermal reference designs including three 250 MW DSX designs; Trane Continuum Rubin DSX designs built on the DSX Blueprint; LiquidStack GigaModular CDU qualified as DSX Ready.","2026-03-16",["trane_rd","euDSX","rubinDSX"]],
+  ["nvent","nVent","Liquid cooling","",["REF"],"Set electrical and liquid-cooling parameters for Siemens’ DSX-aligned Vera Rubin NVL72 reference architecture, after a joint 100 MW blueprint with Siemens.","2026-06-02",["siemens_fluence","siemens_nvent"]],
+  ["mitsubishi","Mitsubishi Electric","Power equipment","",["SIM"],"Contributing equipment and system models to NVIDIA’s AI Factory Research Center for the Omniverse DSX blueprint.","2025-10-28",["gtcdc"]],
+  ["flex","Flex","Prefab power, IT racks, cooling","",["REF","SIM"],"Prefabricated modular reference designs for the Omniverse DSX Blueprint, including an 800 VDC power rack for Vera Rubin.","2026-03-16",["flex"]]
+ ]],
+ ["L","Grid, generation & storage equipment",[
+  ["gevernova","GE Vernova","Grid and generation equipment","In-house grid software; strategic investor in Emerald AI",["SIM"],"Extending digital twins from the grid to AI factories in line with the DSX reference architecture; contributing models to the AI Factory Research Center.","2026-03-16",["rubinDSX","euDSX","grid_blog"]],
+  ["hitachi","Hitachi Energy","Grid equipment, battery storage","Named as Hitachi in some NVIDIA releases; own energy management system",["FLEX","READY","SIM"],"Integrating its energy management system with DSX Flex; battery energy storage system qualified as DSX Ready BESS.","2026-09-22",["euDSX","hitachi_ready","rubinDSX"]],
+  ["siemensenergy","Siemens Energy","Gas turbines, grid equipment","Noedra grid twin uses NVIDIA libraries",["SIM"],"Collaborating on power infrastructure and digital twin initiatives; its Noedra grid twin uses NVIDIA RAPIDS, Metropolis and Isaac Sim.","2026-03-16",["rubinDSX","euDSX"]],
+  ["caterpillar","Caterpillar","On-site gas generation","Owns Solar Turbines",["GEN"],"Supplying G3500 gas generator sets for Nscale’s Vera Rubin DSX AI factory in West Virginia, targeting 2 GW of on-site power.","2026-03-17",["nscale_cat","rubinDSX"]],
+  ["tesla","Tesla","Megapack battery storage","",["READY","SIM"],"Megapack 2XL among the first DSX Ready BESS qualifications; power equipment models at the AI Factory Research Center.","2026-09-22",["bess_ready","gtcdc"]],
+  ["lges","LG Energy Solution","Battery storage","",["READY"],"5 MW/10 MWh battery system among the first three DSX Ready BESS qualifications.","2026-09-22",["bess_ready"]],
+  ["fluence","Fluence","Battery storage (Smartstack)","",["REF"],"Battery storage in Siemens’ DSX-aligned Vera Rubin reference architecture for ride-through, black start, demand response and AI load smoothing.","2026-06-02",["siemens_fluence"]]
+ ]],
+ ["L","Systems makers",[
+  ["dell","Dell Technologies","Servers, Dell AI Factory","",["POD","SYS"],"DSX POD partner. Building DSX-ready systems and contributing SimReady assets.","2026-10-21",["pod","dsxPlat"]],
+  ["hpe","HPE","Servers, AI Mod POD modular DC","",["POD","SYS"],"DSX POD partner. Building DSX-ready systems; offers HPE AI Mod POD modular data centers.","2026-10-21",["pod","dsxPlat","cad_hpe"]],
+  ["lenovo","Lenovo","Servers, Neptune liquid cooling","Lenovo Hybrid AI Factory Services",["POD","SYS"],"DSX POD partner. Building DSX-ready systems; Lenovo AI Cloud Gigafactory program with NVIDIA.","2026-10-21",["pod","dsxPlat","lenovo"]],
+  ["bull","Bull","Europe-built AI systems","BullSequana AI software layer",["POD"],"DSX POD partner. Builds Vera Rubin NVL72 systems in Europe with Foxconn and supplies its own AI software layer.","2026-10-21",["pod","bull_fox2"]],
+  ["foxconn","Foxconn (Ingrasys)","Rack-scale systems","Fii Omniverse Digital Twin (FODT)",["POD","SYS","SIM"],"DSX POD partner (via Ingrasys). Building DSX-ready systems; simulates liquid-cooled PODs with NVIDIA’s AI factory blueprint.","2026-10-21",["pod","dsxPlat","tw_blog"]],
+  ["gigabyte","GIGABYTE","GIGAPOD rack systems","DC planning services using DSX SimReady",["POD","SYS","SIM"],"DSX POD partner. Building DSX-ready systems; represents GIGAPOD racks as DSX SimReady assets.","2026-10-21",["pod","dsxPlat","gigabyte"]],
+  ["pegatron","Pegatron","Rack-scale systems","PEGAVERSE digital twin",["POD","SYS"],"DSX POD partner. Building DSX-ready systems.","2026-10-21",["pod","dsxPlat"]],
+  ["qct","Quanta Cloud Technology (QCT)","Rack-scale systems","",["POD","SYS","SIM"],"DSX POD partner. Building DSX-ready systems; demonstrated an AI factory virtual twin on the DSX Blueprint.","2026-10-21",["pod","dsxPlat","ds_blog"]],
+  ["wistron","Wistron","Rack-scale systems","WiDT and AIF-DT digital twins",["POD","SYS","SIM"],"DSX POD partner. Building DSX-ready systems; applies the Omniverse DSX Blueprint in its own AI-server plants.","2026-10-21",["pod","dsxPlat","wistron"]],
+  ["supermicro","Supermicro","Servers, DCBBS building blocks","",["SYS","OS"],"Building DSX-ready systems; integrating DSX OS Infra Controller and AI Cluster Runtime.","2026-05-31",["dsxPlat","dsxOSblog"]],
+  ["asus","ASUS","AI POD rack systems","",["SYS","SIM"],"Building DSX-ready systems; uses the Omniverse DSX Blueprint to plan cooling and simulate AI factories before deployment.","2026-06",["dsxPlat","asus"]],
+  ["wiwynn","Wiwynn","Rack-scale systems","",["SYS"],"Building DSX-ready systems and contributing SimReady assets.","2026-05-31",["dsxPlat"]]
+ ]],
+ ["L","Engineering & construction",[
+  ["jacobs","Jacobs","Engineering, Data Center Digital Twin","Sells a Data Center Digital Twin built on the DSX Blueprint",["SIM","REF"],"Released a Data Center Digital Twin solution on the DSX Blueprint; designs the building and aggregates partner SimReady assets in the blueprint workflow.","2026-03-16",["jacobs","rubinDSX","dsxBlog"]],
+  ["bechtel","Bechtel","Construction, modular delivery","",["REF"],"Turning NVIDIA’s 1 GW DSX reference architecture into modular, deployable designs and delivering prefabricated modules.","2025-10-28",["bechtel","dsxBlog"]]
+ ]],
+ ["R","AI clouds",[
+  ["coreweave","CoreWeave","AI cloud","",["MAX","OS","AIR"],"Exploring DSX MaxLPS and DSX OS components; uses DSX Air to build and test AI factory twins before hardware arrives.","2026-10-21",["euDSX","rubinDSX","dsxAir"]],
+  ["crusoe","Crusoe","AI cloud, Crusoe Spark modules","Crusoe Cloud, Managed Inference",["POD","OS","MAX"],"DSX POD partner. Deploying DSX Sim, DSX MaxLPS and DSX OS; expanded its NVIDIA collaboration across the AI factory stack at GTC 2026.","2026-10-21",["pod","dsxPlat","euDSX","crusoe"]],
+  ["nebius","Nebius","AI cloud","",["MAX","OS","FLEX"],"Exploring DSX MaxLPS and DSX OS; hosted the UK DSX Flex trial with Emerald AI and National Grid.","2026-10-21",["euDSX","dsxOSblog","ng_trial"]],
+  ["lambda","Lambda","AI cloud","",["MAX","OS"],"DSX MaxLPS proof of concept: 24% more cluster token throughput in a fixed power budget; early adopter of NVIDIA Fleet Intelligence.","2026-10-21",["euDSX","dsxOSblog"]],
+  ["nscale","Nscale","AI cloud, AI factory developer","Nscale Energy & Power",["SITE","SIM","MAX","FLEX","OS"],"Flagship Vera Rubin DSX deployment in West Virginia; DSX Sim twins for Portugal and Iceland; MaxLPS results in Iceland; exploring DSX Flex.","2026-10-21",["rubinDSX","euDSX","nscale_cat"]],
+  ["iren","IREN","AI cloud, AI factory developer","Owns Mirantis (k0rdent AI)",["SITE","MAX","OS","AIR"],"Up to 5 GW of DSX-aligned AI infrastructure, with Sweetwater, Texas as flagship; exploring MaxLPS and DSX OS; DSX Air network twin with BE Networks.","2026-05-07",["iren","euDSX","iren_be"]],
+  ["firmus","Firmus","AI cloud (Australia)","Project Southgate",["MAX","OS","NAT"],"Exploring DSX MaxLPS and DSX OS; part of NVIDIA’s Australian DSX ecosystem.","2026-10-21",["euDSX","dsxOSblog","australia"]],
+  ["googlecloud","Google Cloud","Hyperscale cloud","",["MAX"],"Exploring DSX MaxLPS.","2026-10-21",["euDSX"]],
+  ["sharonai","Sharon AI","AI cloud (Australia)","",["MAX","OS","NAT"],"Exploring DSX MaxLPS and DSX OS; deploying up to 68,000 GPUs in Australia.","2026-10-21",["euDSX","australia"]],
+  ["yotta","Yotta Data Services","AI cloud (India)","",["OS"],"Deploying DSX platform components; uses DSX OS services in production.","2026-05-31",["dsxPlat","dsxOSblog"]],
+  ["siamai","Siam.AI","AI cloud (Thailand)","",["AIR"],"Accelerated its infrastructure deployment with DSX Air.","2026-03-16",["dsxAir"]],
+  ["aolani","Aolani","AI cloud (Singapore)","",["OS"],"One of the first DSX OS deployments on GB200 NVL72, with Rafay.","2026-07-30",["aolani"]],
+  ["vultr","Vultr","Cloud","",["OS"],"Adopting DSX OS components.","2026-05-31",["dsxPlat","dsxOSblog"]],
+  ["g42","G42","AI cloud (UAE)","",["OS"],"Exploring the latest DSX OS components.","2026-10-21",["euDSX"]],
+  ["gmi","GMI Cloud","AI cloud","",["OS"],"Exploring the latest DSX OS components.","2026-10-21",["euDSX"]],
+  ["aleria","Aleria","AI cloud","",["OS"],"Exploring the latest DSX OS components.","2026-10-21",["euDSX"]],
+  ["cassava","Cassava","AI cloud (Africa)","",["OS"],"Exploring the latest DSX OS components.","2026-10-21",["euDSX"]],
+  ["firebird","Firebird","AI cloud","",["OS"],"Exploring the latest DSX OS components.","2026-10-21",["euDSX"]],
+  ["radiant","Radiant","AI cloud","",["OS"],"Exploring the latest DSX OS components.","2026-10-21",["euDSX"]],
+  ["volta","Volta","AI cloud","",["OS"],"Exploring the latest DSX OS components.","2026-10-21",["euDSX"]],
+  ["resetdata","ResetData","AI cloud (Australia)","",["NAT"],"Part of NVIDIA’s Australian DSX AI factory ecosystem.","2026-09-09",["australia"]],
+  ["megaport","Megaport (Latitude.sh)","Network and GPU cloud","",["NAT"],"Part of NVIDIA’s Australian DSX AI factory ecosystem.","2026-09-09",["australia"]],
+  ["skt","SK Telecom","Telecom, AI cloud (Korea)","",["NAT","SITE"],"Building a gigawatt-scale AI cloud in Korea on the DSX platform; first AI factory expected in 2027.","2026-06-08",["skt","nv8k"]],
+  ["naver","NAVER","AI cloud (Korea)","",["NAT"],"Strategic partnership to build sovereign AI infrastructure at gigawatt scale on the DSX platform.","2026-07-27",["nv8k"]]
+ ]],
+ ["R","Data center developers & operators",[
+  ["switch","Switch","EVO AI factories","LDC EVO operating system",["SIM"],"Built EVO AI Factories and the LDC EVO operating system on the DSX Blueprint, with live twins to Rubin DSX specifications.","2026-03-16",["switch","rubinDSX","gtcdc"]],
+  ["digitalrealty","Digital Realty","Colocation, AI Factory Research Center host","",["SITE"],"Hosts NVIDIA’s AI Factory Research Center in Manassas, where the DSX blueprint is validated; builder of the Aurora power-flexible AI factory.","2025-11-03",["dlr","gtcdc","aurora"]],
+  ["dayone","DayOne","Hyperscale data center operator","",["POD"],"DSX POD partner. NVIDIA Partner Network Data Center Partner.","2026-10-21",["pod","dayone"]],
+  ["hut8","Hut 8","Energy and data center developer","",["SITE"],"Committed to using DSX technology to develop multiple gigawatts of capacity.","2026-05-21",["dcr_sim"]],
+  ["lancium","Lancium","Powered land, AI campuses","",["MAX","FLEX"],"NVIDIA equity stake; Lancium campuses become DSX deployment sites running DSX MaxLPS and DSX Flex.","2026-08-24",["lancium"]],
+  ["cloverleaf","Cloverleaf Infrastructure","Powered land","",["REF","FLEX"],"NVIDIA minority stake; projects built on the DSX spec, including DSX Flex.","2026-08-21",["tnw_land","dcd_clover"]],
+  ["sbenergy","SB Energy","Developer, PORTS-Pike campus","",["SITE"],"PORTS-Pike campus in Ohio uses NVIDIA’s full-stack DSX AI factory platform, starting at 4.25 IT-GW.","2026-08-17",["sbe"]],
+  ["polar","Polar Data Centers","AI data center developer (Norway)","",["REF"],"Applying Vertiv’s DSX-based factory-built deployment at its 41 MW Herøya site.","2026-10-21",["vertiv_polar"]],
+  ["cdc","CDC Data Centres","Data center operator (Australia)","",["NAT"],"Part of NVIDIA’s Australian DSX AI factory ecosystem.","2026-09-09",["australia"]],
+  ["nextdc","NEXTDC","Data center operator (Australia)","",["NAT"],"Part of NVIDIA’s Australian DSX AI factory ecosystem.","2026-09-09",["australia"]],
+  ["airtrunk","AirTrunk","Data center operator (Australia)","",["NAT"],"Part of NVIDIA’s Australian DSX AI factory ecosystem.","2026-09-09",["australia"]],
+  ["brookfield","Brookfield","Infrastructure investor and developer","",["NAT"],"Strategic partnership to build sovereign AI infrastructure in Korea on the DSX platform.","2026-07-27",["nv8k"]]
+ ]],
+ ["R","Modular & edge",[
+  ["armada","Armada","Modular edge AI data centers","Bridge, Atlas, Commander",["POD","AIR"],"DSX POD partner. Uses DSX Air to simulate full AI factories for its Bridge GPU management software.","2026-10-21",["pod","armada"]],
+  ["anduril","Anduril","Defense technology","",["POD"],"DSX POD partner. No further DSX disclosures found.","2026-10-21",["pod"]]
+ ]],
+ ["R","Grid operators, utilities & generators",[
+  ["epri","EPRI","Research, DCFlex initiative","",["FLEX"],"Runs DCFlex, which tests power-flexible AI factories; part of the DSX Flex trial with Nebius and National Grid.","2026-10-21",["euDSX","aurora"]],
+  ["nationalgrid","National Grid","Grid operator (UK)","National Grid Partners invests in Emerald AI",["FLEX"],"Using DSX Flex; the UK trial cut cluster power draw by up to 40%.","2026-05-31",["euDSX","dsxOSblog","ng_trial"]],
+  ["pjm","PJM Interconnection","Grid operator (US)","",["FLEX"],"Coalition partner in the Aurora power-flexible AI factory reference design.","2025-10-30",["aurora"]],
+  ["svp","Silicon Valley Power","Municipal utility","",["FLEX"],"Commercial multi-megawatt DSX Flex pilot with Emerald AI.","2026-05-31",["dsxPlat"]],
+  ["engie","ENGIE","Energy company","",["FLEX"],"Using DSX Flex grid services.","2026-05-31",["dsxOSblog"]],
+  ["aes","AES","Power producer","",["GEN"],"Planning generation strategies for power-flexible AI factories built on the Vera Rubin DSX design.","2026-03-31",["grid_blog","fortune_em"]],
+  ["constellation","Constellation Energy","Power producer","",["GEN"],"Planning generation strategies for power-flexible AI factories built on the Vera Rubin DSX design.","2026-03-31",["grid_blog","fortune_em"]],
+  ["invenergy","Invenergy","Power producer","",["GEN"],"Planning generation strategies for power-flexible AI factories built on the Vera Rubin DSX design.","2026-03-31",["grid_blog","fortune_em"]],
+  ["nextera","NextEra Energy","Power producer","",["GEN"],"Planning generation strategies for power-flexible AI factories built on the Vera Rubin DSX design.","2026-03-31",["grid_blog","fortune_em"]],
+  ["vistra","Vistra","Power producer","",["GEN"],"Planning generation strategies for power-flexible AI factories built on the Vera Rubin DSX design.","2026-03-31",["grid_blog","fortune_em"]],
+  ["terrapower","TerraPower","Advanced nuclear","",["GEN"],"Named in NVIDIA’s AI factory energy ecosystem; building an Omniverse-based plant design twin with SoftServe.","2026-03-31",["grid_blog"]]
+ ]]
+];
+// software: [id, name, sub, note, nvTab|null, nvText, nvDate, nvSrc]
+const SG = [
+ ["Design, simulation & PLM",[
+  ["dassault","Dassault Systèmes","3DEXPERIENCE · CATIA MBSE","","MBSE · Blueprint","Long-term partnership: NVIDIA adopts Dassault model-based systems engineering to design AI factories, starting with Rubin. Dassault builds a CATIA-powered Virtual Twin of AI Factory on the Vera Rubin DSX reference design and Blueprint; CATIA Magic SysML appears in NVIDIA’s agent-assisted twin workflow.","2026-02-03",["itbrief_ds","rubinDSX","ds_blog","agentDT"]],
+  ["cadence","Cadence","Reality Digital Twin Platform","","Blueprint · SimReady","Reality Digital Twin purpose-built on the DSX Blueprint; SimReady GB300 NVL72 models and Vera Rubin modeling; simulates MaxP, MaxQ and DSX MaxLPS. NVIDIA uses it for its own data centers, and Cadence leads the SimReady thermal spec.","2026-03-16",["rubinDSX","dsxBlog","cad_dgx","cad_tb","agentDT"]],
+  ["siemens","Siemens","Xcelerator · Simcenter · DC management","Siemens Smart Infrastructure also supplies power hardware; investor in Emerald AI","DSX Sim · Rubin DSX","Siemens IEC and UL AI Blueprints for Rubin DSX ship as SimReady assets; Siemens uses DSX Sim to simulate power, cooling and acoustics; Simcenter STAR-CCM+ appears in the DSX twin workflow; the CES 2026 industrial AI partnership extends to AI factories.","2026-03-16",["siemens_dsx","euDSX","agentDT","siemens_ces"]],
+  ["ptc","PTC","Windchill · Creo · SceneLink","Being acquired by Schneider Electric","Windchill · DSX Sim","Windchill integrates the DSX Blueprint for DSX Accelerator and manages bills of materials across partners; PTC helps build SimReady assets for DSX Sim; SceneLink beta links Windchill data to Omniverse.","2026-10-20",["rubinDSX","euDSX","ptc_scene"]],
+  ["autodesk","Autodesk","Tandem digital twin","No DSX-specific NVIDIA tie found",null,"","",[]]
+ ]],
+ ["Power & facility engineering",[
+  ["etap","ETAP","Electrical digital twin","A Schneider Electric company","Omniverse · SimReady","Electrical modeling integrated into Omniverse for grid-to-chip simulation; develops the SimReady specification for electrical data.","2025-05",["simreadyDev","se_etap","dsxBlog"]],
+  ["aveva","AVEVA","Unified Engineering · PI System","A Schneider Electric company","Blueprint · Exchange","Engineering and operations software embedded across the DSX Blueprint: an OpenUSD SimReady converter into AVEVA Unified Engineering, liquid-cooling simulation, and PI System across DSX Exchange.","2026-03-17",["aveva_icn","se_mar"]]
+ ]],
+ ["Construction",[
+  ["procore","Procore","Construction management","","Blueprint · DSX Sim","Procore Platform integrated with the Omniverse DSX Blueprint for a construction digital thread; NVIDIA uses it to build its own AI factories; integrated with DSX Sim for AI factory builds.","2026-03-16",["procore","euDSX"]]
+ ]],
+ ["Operations & energy AI",[
+  ["emerald","Emerald AI","Conductor grid-flex platform","Investors include Eaton, GE Vernova, Siemens, National Grid Partners and NVentures","DSX Flex","Conductor integrated with DSX Flex; commercial pilot with Silicon Valley Power; UK trial cut cluster power draw by up to 40%.","2026-05-31",["rubinDSX","dsxPlat","euDSX"]],
+  ["phaidra","Phaidra","AI agents for cooling and power","","Max-Q · MaxLPS","Integrated DSX Max-Q into its self-learning agent for about 10% more compute; deploying DSX MaxLPS; agents trained in the DSX digital twin.","2026-03-16",["rubinDSX","dsxOSblog","phaidra"]],
+  ["brainbox","BrainBox AI","Building HVAC AI","Owned by Trane; no DSX tie found",null,"","",[]]
+ ]],
+ ["Digital twin platforms & services",[
+  ["huggingface","Hugging Face","Hosts SimReady Central","","SimReady Central","SimReady Central Library of 2,000+ simulation-ready OpenUSD assets launched on Hugging Face, including validated power and cooling assets.","2026-10-21",["euDSX","agentDT"]],
+  ["softserve","SoftServe","Omniverse twin developer","","Omniverse","Building an Omniverse-based digital twin platform with TerraPower, named in NVIDIA’s AI factory energy post.","2026-03-31",["grid_blog"]]
+ ]],
+ ["AI cloud & infrastructure software",[
+  ["mirantis","Mirantis","k0rdent AI","Owned by IREN since Aug 2026","DSX OS","k0rdent AI integrates DSX OS components (Infra Controller, Run:ai); inaugural AI Cloud-Ready ISV partner.","2026-06-01",["dsxOSblog","mirantis_dsx"]],
+  ["rafay","Rafay","GPU cloud orchestration","","DSX OS · Air","Integrating DSX OS Infra Controller and AI Cluster Runtime; host orchestration in the DSX Air demo.","2026-05-31",["dsxOSblog","dsxAir"]],
+  ["vast","VAST Data","AI data platform","","DSX Air","VAST AI Operating System runs in the DSX Air demo; listed DSX Air partner.","2026-03-16",["dsxAir","dsxSimPage"]],
+  ["be","BE Networks","Verity network automation","","DSX Air","Listed DSX Air partner; Verity automation validated in DSX Air network twins.","2026-06-02",["dsxSimPage","iren_be"]],
+  ["redhat","Red Hat","OpenShift AI","","DSX OS","Integrating DSX OS provisioning and lifecycle components.","2026-05-31",["dsxOSblog"]],
+  ["spectro","Spectro Cloud","PaletteAI","","DSX OS","Adopting DSX OS components in PaletteAI.","2026-05-31",["dsxPlat","dsxOSblog"]],
+  ["opennebula","OpenNebula Systems","Cloud management","","DSX OS · Air","Integrating DSX OS lifecycle components; listed DSX Air partner.","2026-05-31",["dsxOSblog","dsxSimPage"]],
+  ["netris","Netris","Network automation","","DSX Air","Network orchestration in the DSX Air multi-tenant demo.","2026-03-16",["dsxAir"]],
+  ["suse","SUSE","Linux and Kubernetes","In Switch’s LDC EVO stack; no DSX tie found",null,"","",[]],
+  ["airOther","Other DSX Air partners","Aviz, Check Point, Hedgehog, Hydra Host, Keysight, TrendAI","","DSX Air","Aviz Networks, Check Point, Hedgehog, Hydra Host, Keysight and TrendAI (Trend Micro) are DSX Air ecosystem partners for networking, security, provisioning and test.","2026-03-16",["dsxAir","dsxSimPage"]],
+  ["osOther","Other DSX OS adopters","Aible, Beyond AI, Bhashini, DCAI, Sarvam, Simplismart, vCluster","","DSX OS","Aible, Beyond AI, Bhashini, DCAI, Sarvam, Simplismart and vCluster use DSX OS components for scheduling and platform services.","2026-05-31",["dsxPlat","dsxOSblog"]]
+ ]]
+];
+
+const N = {nvidia:{id:"nvidia",name:"NVIDIA",tier:"nv",group:"Platform owner",sub:"DSX platform: POD, Omniverse DSX Blueprint, DSX Sim, SimReady, Flex, MaxLPS, Exchange, OS, Air, Ready",note:""}};
+const PGROUPS = [], SGROUPS = [];
+PG.forEach(([side,g,list])=>{PGROUPS.push({side,name:g,ids:list.map(x=>x[0])});
+  list.forEach(([id,name,sub,note,roles,npT,npD,npS])=>N[id]={id,name,tier:"p",side,group:g,sub,note,roles,pod:roles.includes("POD"),np:{t:npT,d:npD,s:npS}});});
+SG.forEach(([g,list])=>{SGROUPS.push({name:g,ids:list.map(x=>x[0])});
+  list.forEach(([id,name,sub,note,tab,t,d,s])=>N[id]={id,name,tier:"s",group:g,sub,note,tab,nvd:{t,d,s}});});
+
+// ---------------- Edges ----------------
+const E = [];
+function add(a,b,type,date,title,text,src){E.push({a,b,type,date,title,text,src});}
+// partner ↔ software
+add("vertiv","dassault","bi","2026-10-22","MBSE virtual twins for NVIDIA DSX AI factories","SmartRun digital twin built with 3DEXPERIENCE model-based systems engineering and connected to Omniverse DSX (Computex, June 2026). Expanded on Oct 22, 2026 to Vertiv OneCore: Vertiv SimReady power and cooling designs become configurable system models for Vera Rubin DSX factories.",["ds_vertiv","vertiv_smartrun","itbrief_vertiv","ds_blog"]);
+add("qct","dassault","bi","2026-06-01","AI factory virtual-twin configurator","QCT engineers and validates rack-level AI infrastructure as a virtual twin on 3DEXPERIENCE with the Omniverse DSX Blueprint before build (Computex 2026 demo with NVIDIA).",["ds_blog","dsxPlat"]);
+add("pegatron","dassault","bi","2026-05-31","Live rack-to-facility configurator","NVIDIA names Pegatron, with QCT, as working with Dassault Systèmes on a live AI factory digital-twin configurator that automates rack-to-facility design.",["dsxPlat"]);
+add("switch","dassault","use","2026-03-16","In the LDC EVO software stack","Switch lists Dassault Systèmes among the supplier technologies integrated into LDC EVO, its AI factory operating system, for thermal modeling, electrical simulation, reality capture, construction management and telemetry.",["switch"]);
+add("hpe","cadence","bi","2026-06-16","Cadence Reality inside HPE AI Mod POD","Expanded collaboration standardizes the Cadence Reality Digital Twin Platform in HPE’s modular AI data center (AI Mod POD) and HPE Data Center Services. Library models cover GB300 NVL72 and Vera Rubin NVL72.",["cad_hpe","hpcw_hpe","dcd_cad"]);
+add("foxconn","cadence","use","2025","Cadence CFD data trains POD-cooling models","Foxconn trains NVIDIA PhysicsNeMo models on output from CFD solvers such as Cadence’s to run near-real-time thermal simulation of data center POD cooling.",["fox_case"]);
+add("vertiv","cadence","use","2024-03","Vertiv cooling modeled in Cadence Reality","NVIDIA used Cadence Reality to simulate Vertiv and Schneider liquid cooling in its Blackwell twin; Cadence describes Reality as a DSX Blueprint node alongside Vertiv and Schneider.",["dcd_cad","cad_tb"]);
+add("schneider","cadence","use","2024-03","Schneider cooling modeled in Cadence Reality","Schneider liquid-cooling systems were simulated in Cadence Reality for NVIDIA’s Blackwell twin; Cadence cites Schneider as a fellow DSX Blueprint node.",["dcd_cad","cad_tb"]);
+add("switch","cadence","use","2026-03-16","In the LDC EVO software stack","Switch lists Cadence among the technologies integrated into LDC EVO for its live, physics-accurate AI factory twin.",["switch"]);
+add("foxconn","siemens","use","2025-05","Factory twins built on Siemens and Omniverse","Foxconn’s Fii Digital Twin platform uses Siemens tools with OpenUSD and Omniverse; its Houston AI-server plant was validated with Siemens’ Omniverse-based twin stack before construction.",["fox_case","tw_blog"]);
+add("nvent","siemens","bi","2025-12-15","Joint AI data center reference architectures","Joint 100 MW blueprint: Siemens power distribution, automation and energy management software with nVent liquid cooling. nVent also set parameters for Siemens’ 2026 DSX-aligned Vera Rubin design.",["siemens_nvent","siemens_fluence"]);
+add("fluence","siemens","bi","2026-06-02","Battery storage in a DSX-aligned design","Siemens’ 136 MW reference architecture aligned with DSX Vera Rubin NVL72 uses Fluence Smartstack batteries, managed through Siemens’ Integrated Data Centre Management Suite.",["siemens_fluence"]);
+add("schneider","aveva","own","2026-03-17","Subsidiary; lifecycle twin in the DSX Blueprint","AVEVA is Schneider Electric’s industrial software business. With NVIDIA it built a lifecycle twin architecture embedded in the DSX Blueprint; AVEVA Process Simulation models liquid-cooling networks for Schneider designs.",["se_mar","aveva_icn"]);
+add("schneider","etap","own","2026-03-17","Subsidiary; validates the Vera Rubin reference design","Schneider’s Vera Rubin NVL72 reference design is validated with ETAP electrical models and EcoStruxure IT Design CFD.",["se_mar","se_etap"]);
+add("schneider","ptc","own","2026-10-05","Acquisition agreed, pending close","Definitive agreement to acquire PTC for $205 per share in cash, about $23.7B enterprise value; closing expected in Q3 2027. PTC Windchill already sits in the DSX Blueprint workflow.",["se_ptc_ia","se_ptc_dn","dsxBlog"]);
+add("switch","etap","use","2026-03-16","In the LDC EVO software stack","Switch lists ETAP among the technologies integrated into LDC EVO, matching its electrical simulation function.",["switch"]);
+add("jacobs","ptc","use","2025-10-28","SimReady assets managed in PTC PLM","In the DSX Blueprint workflow, Jacobs engineers aggregate SimReady power, electrical and cooling assets into PTC’s product lifecycle management system.",["dsxBlog"]);
+add("eaton","autodesk","bi","2025-09-15","Brightlayer Digital Energy Twin on Autodesk Tandem","Joint digital energy twin combining Eaton Brightlayer energy software with Autodesk Tandem for data centers and buildings. Not tied to DSX.",["eaton_adsk"]);
+add("switch","procore","bi","2026-03-16","Joint customer for DSX construction twins","Procore names Switch as a joint customer for its DSX Blueprint construction integration; Switch lists Procore in its LDC EVO stack.",["procore","switch"]);
+add("switch","suse","use","2026-03-16","In the LDC EVO software stack","Switch lists SUSE among the supplier technologies integrated into LDC EVO.",["switch"]);
+add("digitalrealty","emerald","bi","2025-10-30","Aurora, the first power-flexible AI factory","Digital Realty is building the 96 MW Aurora AI Factory in Manassas, which implements Emerald AI’s Conductor and a new power-flexible reference design with NVIDIA.",["aurora"]);
+add("epri","emerald","bi","2025-10-30","DCFlex testing of Conductor","EPRI’s DCFlex initiative tests Emerald AI at Aurora and ran the Phoenix and London demonstrations.",["aurora","ng_trial"]);
+add("pjm","emerald","bi","2025-10-30","Aurora coalition partner","PJM is named in the coalition behind the Aurora power-flexible AI factory and reference design.",["aurora"]);
+add("nebius","emerald","bi","2026-03-02","Host of the UK grid-flex trial","Nebius hosted the UK-first trial at its London data centre, where Emerald Conductor flexed a 96-GPU Blackwell Ultra cluster.",["ng_trial","euDSX"]);
+add("nationalgrid","emerald","bi","2026-03-02","UK live trial and investment","UK trial at Nebius’ London site cut power draw by up to 40%. National Grid Partners is an Emerald AI investor and strategic partner.",["ng_trial","aurora"]);
+add("svp","emerald","bi","2026-04-21","Commercial DSX Flex pilot","Multi-megawatt pilot in Santa Clara showing grid-responsive AI factories with DSX Flex.",["svp_pilot","dsxPlat"]);
+["aes","constellation","invenergy","nextera","vistra"].forEach(g=>add(g,"emerald","bi","2026-03-31","Power-producer partner for power-flexible AI factories","Named as a power-producer partner in NVIDIA and Emerald AI’s program for power-flexible AI factories on the Vera Rubin DSX design.",["fortune_em","grid_blog"]));
+add("nscale","emerald","bi","2026-03-31","Generation partner in the same program","Nscale Energy & Power is named among the generation partners in NVIDIA’s power-flexible AI factory program with Emerald AI; Nscale is also exploring DSX Flex.",["grid_blog","euDSX"]);
+add("eaton","emerald","own","2026","Strategic investor and advisor","Eaton invested in Emerald AI and joined its strategic advisory board.",["emerald_esg"]);
+add("gevernova","emerald","own","2026","Strategic investor","GE Vernova invested in Emerald AI and joined its strategic advisory board.",["emerald_esg"]);
+add("coreweave","phaidra","bi","2026-03-16","Liquid-cooling agent with DSX Max-Q","Joint A/B testing of Phaidra’s DSX Max-Q-integrated liquid-cooling agent on CoreWeave GB200 NVL72, now scaling across its liquid-cooled fleet.",["phaidra_cw","rubinDSX"]);
+add("trane","brainbox","own","2024-12-18","Acquired AI building-controls company","Trane agreed to acquire BrainBox AI in Dec 2024 and launched a BrainBox AI Lab in Aug 2025. The focus is building HVAC, not DSX.",["trane_brainbox","trane_lab"]);
+add("terrapower","softserve","bi","2026-03-31","Omniverse twin for nuclear plant design","TerraPower and SoftServe are building an Omniverse-based digital twin platform for plant siting and design.",["grid_blog"]);
+add("vertiv","huggingface","use","2026-10-21","Assets in SimReady Central","Vertiv contributes validated power and cooling equipment assets to the SimReady Central Library on Hugging Face.",["euDSX","vertiv_polar"]);
+add("iren","mirantis","own","2026-08-04","Acquisition completed","IREN completed its acquisition of Mirantis, whose k0rdent AI platform integrates DSX OS components, adding a software layer to IREN’s AI cloud.",["iren_mirantis","mirantis_dsx"]);
+add("iren","be","bi","2026-06-02","Network twin in DSX Air","BE Networks and IREN use DSX Air to simulate and validate the network for a 50,000+ Blackwell Ultra GPU deployment, with Verity automation.",["iren_be"]);
+add("aolani","rafay","bi","2026-07-30","Early DSX OS deployment","Aolani and Rafay deploy DSX OS on GB200 NVL72, with Rafay providing orchestration, multi-tenancy and lifecycle management.",["aolani"]);
+add("coreweave","vast","bi","2025-11-06","$1.17B data platform deal","VAST Data became CoreWeave’s main data platform in an expanded $1.17B agreement.",["vast_cw"]);
+add("nscale","vast","bi","2025-10-29","Global fabric for AI","Nscale and VAST Data partnered to build the data layer for Nscale’s AI cloud, accelerated by NVIDIA.",["vast_nscale"]);
+// ecosystem
+add("vertiv","ptc","eco","2025-10-28","SimReady assets flow into PTC PLM","In NVIDIA’s DSX Blueprint workflow, Jacobs aggregates SimReady assets from Vertiv, Schneider, Siemens and Trane into PTC PLM.",["dsxBlog"]);
+add("trane","ptc","eco","2025-10-28","SimReady assets flow into PTC PLM","In NVIDIA’s DSX Blueprint workflow, Jacobs aggregates SimReady assets from Vertiv, Schneider, Siemens and Trane into PTC PLM.",["dsxBlog"]);
+add("delta","cadence","eco","2025-05","Equipment models in the AI factory blueprint","Delta adds equipment models to NVIDIA’s blueprint, whose Cadence connection provides thermal simulation. No bilateral announcement found.",["bpExpand"]);
+add("delta","etap","eco","2025-05","Equipment models in the AI factory blueprint","Delta adds equipment models to NVIDIA’s blueprint, whose ETAP connection provides power simulation. No bilateral announcement found.",["bpExpand"]);
+["dell","hpe","lenovo","foxconn","gigabyte","pegatron","qct","wistron","supermicro","asus","wiwynn"].forEach(p=>["cadence","ptc","siemens"].forEach(v=>{
+  if(E.some(e=>e.a===p&&e.b===v)) return;
+  add(p,v,"eco","2026-05-31","DSX Sim ecosystem (NVIDIA-stated)","NVIDIA says system makers building DSX-ready systems and SimReady assets, including "+N[p].name+", are adopting DSX Sim, deepening integration with Cadence, PTC and Siemens. No bilateral announcement found.",["dsxPlat"]);
+}));
+// partner ↔ partner
+add("bull","foxconn","pp","2026-06-01","European Vera Rubin NVL72 manufacturing","Foxconn manufactures and tests systems in the Czech Republic; Bull integrates and validates them in Angers and supplies the AI software layer.",["bull_fox","bull_fox2"]);
+add("eaton","siemensenergy","pp","2025-06-03","Modular data centers with on-site power","Joint offering to build data centers and on-site power generation in parallel.",["eaton_se"]);
+add("eaton","trane","pp","2026","Integrated grid-to-chip design for Vera Rubin DSX","Eaton Beam power infrastructure and Trane Continuum cooling with coordinated controls, designed for the Vera Rubin DSX reference design.",["euDSX"]);
+add("vertiv","caterpillar","pp","2025-11-18","On-site power with power and cooling","MOU combining Vertiv power and cooling with Caterpillar and Solar Turbines generation in prebuilt modular designs.",["vertiv_cat"]);
+add("vertiv","hut8","pp","2026-02-26","OneCore in Hut 8 projects","Hut 8 will integrate Vertiv OneCore into select data center projects, designed in Vertiv’s SimReady, OpenUSD-based twin environment.",["vertiv_hut8"]);
+add("vertiv","polar","pp","2026-10-21","Factory-built DSX deployment in Norway","Polar applies Vertiv’s DSX-based factory-built approach at its 41 MW Herøya site.",["vertiv_polar"]);
+add("caterpillar","nscale","pp","2026-03-17","On-site generation for a DSX AI factory","Caterpillar G3500 generator sets target 2 GW of on-site power for Nscale’s West Virginia DSX AI factory.",["nscale_cat"]);
+add("crusoe","lancium","pp","2026-07","Data center partner on Lancium land","Crusoe designs, builds and runs facilities on Lancium land, including a 1 GW Childress, Texas campus.",["lancium"]);
+add("schneider","switch","pp","2026-03-16","Supplier in Switch’s stack","Switch lists Schneider Electric among the technologies integrated into LDC EVO; Schneider counts Switch as a contract customer.",["switch","dcf_blueprint"]);
+add("schneider","digitalrealty","pp","2025-12-17","Supplier relationship","Schneider Electric counts Digital Realty as a contract customer.",["dcf_blueprint"]);
+// NVIDIA ↔ software and NVIDIA ↔ partners
+Object.values(N).filter(n=>n.tier==="s"&&n.tab).forEach(n=>add("nvidia",n.id,"nv",n.nvd.d,n.tab,n.nvd.t,n.nvd.s));
+Object.values(N).filter(n=>n.tier==="p").forEach(n=>add("nvidia",n.id,"np",n.np.d,n.roles.map(r=>ROLES[r]).join(" · "),n.np.t,n.np.s));
+E.forEach((e,i)=>e.id="e"+i);
+
+// coverage
+const partners = Object.values(N).filter(n=>n.tier==="p");
+const isSw = id=>N[id].tier==="s";
+partners.forEach(p=>{
+  const sw = E.filter(e=>(e.a===p.id&&isSw(e.b))||(e.b===p.id&&isSw(e.a)));
+  p.cov = sw.some(e=>["bi","own","use"].includes(e.type)) ? "direct" : sw.some(e=>e.type==="eco") ? "eco" : "none";
+});
+const COVLABEL = {direct:"Named software tie",eco:"Ecosystem link only",none:"None found"};
+const swNodes = Object.values(N).filter(n=>n.tier==="s");
+
+// ---------------- Stats ----------------
+const cnt = c=>partners.filter(p=>p.cov===c).length;
+const relCount = E.filter(e=>["bi","own","use","pp"].includes(e.type)).length;
+document.getElementById("stats").innerHTML =
+ `<span><b>${partners.length}</b>DSX companies</span><span><b>${partners.filter(p=>p.pod).length}</b>DSX POD partners</span><span><b>${swNodes.length}</b>software vendors or groups</span><span><b>${E.filter(e=>e.type==="nv").length}</b>with a direct NVIDIA tie</span><span><b>${cnt("direct")}</b>companies with a named software tie</span><span><b>${cnt("eco")}</b>ecosystem link only</span><span><b>${cnt("none")}</b>none found</span><span><b>${relCount}</b>named relationships</span>`;
+
+// ---------------- Coverage bars ----------------
+document.getElementById("cov").innerHTML = PGROUPS.map(g=>{
+  const ps = g.ids.map(id=>N[id]), t=ps.length;
+  const n=ps.filter(p=>p.cov==="direct").length, e=ps.filter(p=>p.cov==="eco").length, z=t-n-e;
+  const seg=(c,k,lbl)=>k?`<span class="${c}" style="flex:${k}" title="${lbl}: ${k}"><em>${k}</em></span>`:"";
+  return `<div class="covrow"><div class="gname">${g.name}<small>${g.side==="L"?"Builders & suppliers":"Operators, clouds & grid"}</small></div><div class="bar" role="img" aria-label="${g.name}: ${n} named, ${e} ecosystem only, ${z} none found">${seg("b-n",n,"Named software tie")}${seg("b-e",e,"Ecosystem link only")}${seg("b-0",z,"None found")}</div><div class="tot">${t}</div></div>`;
+}).join("");
+
+// ---------------- Map ----------------
+const svg = document.getElementById("map");
+const NS = "http://www.w3.org/2000/svg";
+const W=1180, HX=590, LD=300, RD=880, PX=480, PW=220, PH=34;
+const state = {scope:"all", hideNone:false, sel:null};
+const hidden = new Set(["eco"]);
+const pos = {};
+function el(tag,attrs,parent){const n=document.createElementNS(NS,tag);for(const k in attrs)n.setAttribute(k,attrs[k]);if(parent)parent.appendChild(n);return n;}
+function visiblePartners(){return partners.filter(p=>(state.scope==="all"||p.pod)&&(!state.hideNone||p.cov!=="none"));}
+function render(){
+  while(svg.firstChild) svg.removeChild(svg.firstChild);
+  const vp = new Set(visiblePartners().map(p=>p.id));
+  const swEdges = E.filter(e=>["bi","own","use","eco"].includes(e.type));
+  const showAllSw = state.scope==="all"&&!state.hideNone;
+  const vs = new Set(swNodes.filter(s=>showAllSw || swEdges.some(e=>(e.b===s.id&&vp.has(e.a))||(e.a===s.id&&vp.has(e.b)))).map(s=>s.id));
+  for(const k in pos) delete pos[k];
+  pos.nvidia=[HX,56];
+  let yL=180,yR=180,yS=180; const gh=[];
+  PGROUPS.forEach(g=>{
+    const ids=g.ids.filter(id=>vp.has(id)); if(!ids.length) return;
+    if(g.side==="L"){gh.push(["L",g.name,yL]);yL+=20;ids.forEach(id=>{pos[id]=[LD,yL];yL+=23;});yL+=16;}
+    else{gh.push(["R",g.name,yR]);yR+=20;ids.forEach(id=>{pos[id]=[RD,yR];yR+=23;});yR+=16;}
+  });
+  SGROUPS.forEach(g=>{
+    const ids=g.ids.filter(id=>vs.has(id)); if(!ids.length) return;
+    gh.push(["S",g.name,yS]);yS+=10;ids.forEach(id=>{pos[id]=[PX,yS];yS+=PH+9;});yS+=18;
+  });
+  const visEdges = E.filter(e=>MAP_TYPES.includes(e.type)&&pos[e.a]&&pos[e.b]);
+  const cross = visEdges.filter(e=>e.type==="pp"&&N[e.a].side!==N[e.b].side);
+  const baseY = Math.max(yL,yR,yS)+4;
+  const H = baseY + (cross.length? 18+cross.length*9 : 10);
+  svg.setAttribute("viewBox",`0 0 ${W} ${H}`);
+  const gE = el("g",{},svg);
+  const order=["eco","use","pp","own","bi"];
+  E.forEach(e=>e.g=null);
+  visEdges.slice().sort((a,b)=>order.indexOf(a.type)-order.indexOf(b.type)).forEach(e=>{
+    const d = pathFor(e,baseY,cross);
+    const g = el("g",{class:"e","data-type":e.type,"data-id":e.id},gE);
+    el("path",{class:"v",d},g);
+    const h = el("path",{class:"hit",d},g);
+    el("title",{},h).textContent = N[e.a].name+" ↔ "+N[e.b].name+": "+e.title;
+    g.addEventListener("click",ev=>{ev.stopPropagation();selectEdge(e.id);});
+    e.g = g;
+  });
+  el("text",{x:LD-12,y:152,"text-anchor":"end",class:"colhead"},svg).textContent="BUILDERS & SUPPLIERS";
+  el("text",{x:PX+PW/2,y:152,"text-anchor":"middle",class:"colhead"},svg).textContent="SOFTWARE VENDORS";
+  el("text",{x:RD+12,y:152,class:"colhead"},svg).textContent="OPERATORS, CLOUDS & GRID";
+  gh.forEach(([side,name,y])=>{
+    if(side==="L") el("text",{x:LD-12,y,"text-anchor":"end",class:"grp"},svg).textContent=name.toUpperCase();
+    else if(side==="R") el("text",{x:RD+12,y,class:"grp"},svg).textContent=name.toUpperCase();
+    else el("text",{x:PX,y,class:"grp"},svg).textContent=name.toUpperCase();
+  });
+  const hub = el("g",{class:"hub node",tabindex:"0",role:"button","aria-label":"NVIDIA","data-id":"nvidia"},svg);
+  el("rect",{x:HX-250,y:16,width:500,height:84,rx:2},hub);
+  el("text",{x:HX,y:56,"text-anchor":"middle",class:"hname"},hub).textContent="NVIDIA";
+  el("text",{x:HX,y:84,"text-anchor":"middle",class:"hsub"},hub).textContent="DSX · POD · Blueprint · Sim · Flex · MaxLPS · Exchange · OS · Air · Ready";
+  el("title",{},hub).textContent="NVIDIA: select to see direct vendor ties and the DSX roster";
+  N.nvidia.g = hub;
+  Object.values(N).forEach(n=>{ if(n.tier!=="nv") n.g=null; });
+  Object.values(N).filter(n=>n.tier!=="nv"&&pos[n.id]).forEach(n=>{
+    const [x,y]=pos[n.id];
+    const g = el("g",{class:"node "+(n.tier==="p"?n.cov:"sw"),tabindex:"0",role:"button","aria-label":n.name,"data-id":n.id},svg);
+    if(n.tier==="p"){
+      const left = n.side==="L";
+      el("rect",{class:"hitbox",x:left?12:x-10,y:y-11,width:left?x-2:W-x-2,height:22},g);
+      el("circle",{class:"shape",cx:x,cy:y,r:5.5},g);
+      if(n.cov==="eco") el("circle",{class:"inner",cx:x,cy:y,r:2},g);
+      el("text",{x:left?x-12:x+12,y:y+5,"text-anchor":left?"end":"start",class:"lbl"},g).textContent=n.name;
+      if(n.pod){const pt=el("g",{class:"podtag"},g);const px=left?14:W-46;el("rect",{x:px,y:y-7,width:32,height:14,rx:1},pt);el("text",{x:px+16,y:y+3.5,"text-anchor":"middle"},pt).textContent="POD";}
+    } else {
+      el("rect",{class:"pill",x,y,width:PW,height:PH,rx:2},g);
+      if(n.tab) el("rect",{class:"nvtab",x:x+0.65,y:y+0.65,width:5,height:PH-1.3},g);
+      el("text",{x:x+14,y:y+15,class:"lbl"},g).textContent=n.name;
+      const sub=n.sub.length>40?n.sub.slice(0,38)+"…":n.sub;
+      el("text",{x:x+14,y:y+28,class:"sub"},g).textContent=sub;
+    }
+    el("title",{},g).textContent = n.name+(n.tier==="p"?" · "+COVLABEL[n.cov]:"")+(n.tab?" · NVIDIA tie: "+n.tab:"");
+    n.g = g;
+  });
+  Object.values(N).forEach(n=>{ if(!n.g) return;
+    n.g.addEventListener("click",ev=>{ev.stopPropagation();selectNode(n.id);});
+    n.g.addEventListener("keydown",ev=>{if(ev.key==="Enter"||ev.key===" "){ev.preventDefault();selectNode(n.id);}});
+  });
+  applyHidden();
+  if(state.sel){ if(state.sel.kind==="node") selectNode(state.sel.id); else selectEdge(state.sel.id); }
+}
+function pathFor(e,baseY,cross){
+  const A=N[e.a],B=N[e.b];
+  if(e.type!=="pp"){
+    const p = A.tier==="p"?A:B, s = A.tier==="p"?B:A;
+    const [px,py]=pos[p.id],[sx,sy]=pos[s.id]; const sy2=sy+PH/2;
+    if(p.side==="L"){const x0=px+6,x1=sx;return `M ${x0} ${py} C ${x0+90} ${py} ${x1-90} ${sy2} ${x1} ${sy2}`;}
+    const x0=px-6,x1=sx+PW;return `M ${x0} ${py} C ${x0-90} ${py} ${x1+90} ${sy2} ${x1} ${sy2}`;
+  }
+  const [ax,ay]=pos[e.a],[bx,by]=pos[e.b];
+  if(A.side===B.side){
+    const dir = A.side==="L"?1:-1, x=ax+6*dir, r=(Math.min(110,Math.abs(by-ay)*0.32+24))*dir;
+    return `M ${x} ${ay} C ${x+r} ${ay} ${x+r} ${by} ${x} ${by}`;
+  }
+  const L = A.side==="L"?[ax,ay]:[bx,by], R = A.side==="L"?[bx,by]:[ax,ay];
+  const i = cross.indexOf(e), lx = 330+i*7, rx = 850-i*7, yb = baseY+10+i*9;
+  return `M ${L[0]+6} ${L[1]} L ${lx-6} ${L[1]} Q ${lx} ${L[1]} ${lx} ${L[1]+6} L ${lx} ${yb-6} Q ${lx} ${yb} ${lx+6} ${yb} L ${rx-6} ${yb} Q ${rx} ${yb} ${rx} ${yb-6} L ${rx} ${R[1]+6} Q ${rx} ${R[1]} ${rx+6} ${R[1]} L ${R[0]-6} ${R[1]}`;
+}
+function applyHidden(){MAP_TYPES.forEach(t=>svg.classList.toggle("hide-"+t,hidden.has(t)));}
+
+const legend = document.getElementById("legend");
+MAP_TYPES.forEach(t=>{
+  const b = document.createElement("button");
+  b.type="button"; b.className="chip"; b.style.setProperty("--c",`var(${TYPES[t].c})`);
+  b.setAttribute("aria-pressed",hidden.has(t)?"false":"true");
+  b.innerHTML = `<span class="sw ${TYPES[t].cls}"></span>${TYPES[t].label}<span class="n">${E.filter(e=>e.type===t).length}</span>`;
+  b.addEventListener("click",()=>{ if(hidden.has(t)) hidden.delete(t); else hidden.add(t); b.setAttribute("aria-pressed",hidden.has(t)?"false":"true"); applyHidden(); });
+  legend.appendChild(b);
+});
+
+const scAll=document.getElementById("sc-all"), scPod=document.getElementById("sc-pod"), hideNone=document.getElementById("hidenone");
+function setScope(s){state.scope=s;scAll.setAttribute("aria-pressed",String(s==="all"));scPod.setAttribute("aria-pressed",String(s==="pod"));if(state.sel&&state.sel.kind==="node"&&!isVisible(state.sel.id)) state.sel=null;render();if(!state.sel) restPanel();}
+function isVisible(id){const n=N[id]; if(n.tier!=="p") return true; return (state.scope==="all"||n.pod)&&(!state.hideNone||n.cov!=="none");}
+scAll.addEventListener("click",()=>setScope("all"));
+scPod.addEventListener("click",()=>setScope("pod"));
+hideNone.addEventListener("change",()=>{state.hideNone=hideNone.checked;if(state.sel&&state.sel.kind==="node"&&!isVisible(state.sel.id)) state.sel=null;render();if(!state.sel) restPanel();});
+const dl=document.getElementById("names");
+dl.innerHTML=Object.values(N).map(n=>`<option value="${n.name.replace(/"/g,"&quot;")}"></option>`).join("");
+const findin=document.getElementById("findin");
+function doFind(){const v=findin.value.trim().toLowerCase(); if(!v) return;
+  const n=Object.values(N).find(x=>x.name.toLowerCase()===v)||Object.values(N).find(x=>x.name.toLowerCase().includes(v)); if(!n) return;
+  goTo(n.id);}
+findin.addEventListener("change",doFind);
+findin.addEventListener("keydown",ev=>{if(ev.key==="Enter"){ev.preventDefault();doFind();}});
+function goTo(id){
+  if(!isVisible(id)||(N[id].tier==="s"&&!pos[id])){state.hideNone=false;hideNone.checked=false;state.scope="all";scAll.setAttribute("aria-pressed","true");scPod.setAttribute("aria-pressed","false");state.sel=null;render();}
+  selectNode(id);
+  const h=document.getElementById("m-h"); if(h.scrollIntoView) h.scrollIntoView({behavior:"smooth",block:"start"});
+}
+
+// ---------------- Panel ----------------
+const panel = document.getElementById("panel");
+const esc = s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+function srcHtml(keys){return `<div class="src">${keys.map(k=>`<a href="${esc(S[k][1])}" target="_blank" rel="noopener">[${SRC_NUM[k]}] ${esc(S[k][0])}</a>`).join("")}</div>`;}
+function relHtml(e,self){
+  const other = e.a===self?e.b:e.a;
+  const head = self ? `<button class="who" type="button" data-go="${other}">${esc(N[other].name)}</button>` : `<span class="who static">${esc(N[e.a].name)} ↔ ${esc(N[e.b].name)}</span>`;
+  return `<div class="rel" style="--c:var(${TYPES[e.type].c})"><div class="top">${head}<span class="pill2 t-${e.type}">${esc(e.type==="nv"?e.title:TYPES[e.type].short)}</span><span class="d">${esc(e.date)}</span></div>${e.type==="nv"?"":`<div class="tt">${esc(e.title)}</div>`}<p>${esc(e.text)}</p>${srcHtml(e.src)}</div>`;
+}
+function wirePanel(){panel.querySelectorAll("[data-go]").forEach(b=>b.addEventListener("click",()=>goTo(b.dataset.go)));}
+function degree(id){return E.filter(e=>(e.a===id||e.b===id)&&["bi","own","use"].includes(e.type)).length;}
+function restPanel(){
+  const deg = Object.values(N).filter(n=>n.tier!=="nv").map(n=>({n,d:degree(n.id)})).sort((a,b)=>b.d-a.d||a.n.name.localeCompare(b.n.name)).slice(0,10);
+  panel.innerHTML = `<div class="ph"><div class="k">Evidence panel</div><h3>Select a company</h3><div class="s">Or click any line. Each entry lists its date, a summary and its sources, including the company’s role in NVIDIA’s DSX platform.</div></div>
+  <div class="pb"><div class="gh">Most named ties (partnership, ownership, tool use)</div><div class="toplist">${deg.map(x=>`<button type="button" data-go="${x.n.id}"><span>${esc(x.n.name)}</span><span>${x.d} tie${x.d===1?"":"s"}</span></button>`).join("")}</div>
+  <p class="note">Select NVIDIA to see every vendor it works with directly and the full roster by DSX role.</p></div>`;
+  wirePanel();
+}
+function markSel(nodeIds,edgeIds){
+  svg.classList.add("sel");
+  Object.values(N).forEach(m=>{if(m.g) m.g.classList.toggle("on",nodeIds.has(m.id));});
+  E.forEach(e=>{if(e.g) e.g.classList.toggle("on",edgeIds.has(e.id));});
+}
+function selectNode(id){
+  state.sel={kind:"node",id};
+  const n = N[id];
+  if(id==="nvidia"){
+    const nv = E.filter(e=>e.type==="nv").sort((a,b)=>String(b.date).localeCompare(String(a.date)));
+    markSel(new Set(["nvidia",...nv.map(e=>e.b)]),new Set());
+    const byRole = Object.keys(ROLES).map(r=>({r,ps:partners.filter(p=>p.roles.includes(r))})).filter(x=>x.ps.length);
+    panel.innerHTML = `<div class="ph"><div class="k">Platform</div><h3>NVIDIA</h3><div class="s">${esc(n.sub)}</div></div><div class="pb">
+      <div class="gh">${TYPES.nv.label} · ${nv.length}</div>${nv.map(e=>relHtml(e,"nvidia")).join("")}
+      <div class="gh">DSX companies by role · ${partners.length}</div><div class="rolegrid">${byRole.map(x=>`<div class="rg"><b>${esc(ROLES[x.r])} <span>· ${x.ps.length}</span></b><div class="chips" style="margin-top:4px">${x.ps.map(p=>`<button type="button" data-go="${p.id}">${esc(p.name)}</button>`).join("")}</div></div>`).join("")}</div>
+      <p class="note">Select a company to see its DSX role and the source.</p></div>`;
+    wirePanel(); return;
+  }
+  const es = E.filter(e=>(e.a===id||e.b===id));
+  const nodeIds = new Set([id,...es.filter(e=>e.type!=="np"&&e.type!=="nv").map(e=>e.a===id?e.b:e.a)]);
+  markSel(nodeIds,new Set(es.map(e=>e.id)));
+  const kicker = n.tier==="p" ? (n.side==="L"?"Builders & suppliers":"Operators, clouds & grid")+" · "+n.group : "Software vendor · "+n.group;
+  let html = `<div class="ph"><div class="k">${esc(kicker)}</div><h3>${esc(n.name)}</h3><div class="s">${esc(n.sub)}</div>`;
+  if(n.tier==="p") html += `<div class="tags"><span class="pill2 c-${n.cov}">${COVLABEL[n.cov]}</span>${n.pod?'<span class="pill2 pod">DSX POD partner</span>':""}</div>`;
+  if(n.note) html += `<div class="s" style="margin-top:6px">${esc(n.note)}</div>`;
+  html += `</div><div class="pb">`;
+  if(n.tier==="p"){
+    const np = es.find(e=>e.type==="np");
+    html += `<div class="gh">Role in NVIDIA DSX</div><div class="rel" style="--c:var(--accent)"><div class="chips">${n.roles.map(r=>`<span class="role">${esc(ROLES[r])}</span>`).join("")}</div><span class="d">${esc(np.date)}</span><p>${esc(np.text)}</p>${srcHtml(np.src)}</div>`;
+  } else {
+    const nv = es.find(e=>e.type==="nv");
+    html += `<div class="gh">Direct NVIDIA tie</div>` + (nv ? `<div class="rel" style="--c:var(--accent)"><div class="top"><span class="pill2 t-nv">${esc(nv.title)}</span><span class="d">${esc(nv.date)}</span></div><p>${esc(nv.text)}</p>${srcHtml(nv.src)}</div>` : `<p class="note">No direct NVIDIA DSX tie found.</p>`);
+  }
+  ["bi","own","use","pp","eco"].forEach(t=>{
+    const list = es.filter(e=>e.type===t).sort((a,b)=>String(b.date).localeCompare(String(a.date)));
+    if(!list.length) return;
+    html += `<div class="gh">${TYPES[t].label} · ${list.length}</div>` + list.map(e=>relHtml(e,id)).join("");
+  });
+  if(n.tier==="p"&&n.cov==="none") html += `<p class="note">No public tie to an outside design, simulation, construction or operations software vendor was found for ${esc(n.name)} as of Oct 23, 2026.</p>`;
+  html += `</div>`;
+  panel.innerHTML = html; wirePanel();
+}
+function selectEdge(eid){
+  state.sel={kind:"edge",id:eid};
+  const e = E.find(x=>x.id===eid);
+  markSel(new Set([e.a,e.b]),new Set([eid]));
+  panel.innerHTML = `<div class="ph"><div class="k">Relationship</div><h3>${esc(N[e.a].name)} ↔ ${esc(N[e.b].name)}</h3></div><div class="pb">${relHtml(e,null)}<div class="chips"><button type="button" data-go="${e.a}">Open ${esc(N[e.a].name)}</button><button type="button" data-go="${e.b}">Open ${esc(N[e.b].name)}</button></div></div>`;
+  wirePanel();
+}
+function clearSel(){state.sel=null;svg.classList.remove("sel");Object.values(N).forEach(m=>{if(m.g) m.g.classList.remove("on");});E.forEach(e=>{if(e.g) e.g.classList.remove("on");});restPanel();}
+svg.addEventListener("click",clearSel);
+document.getElementById("reset").addEventListener("click",clearSel);
+render(); restPanel();
+
+// ---------------- Matrix ----------------
+const VCOLS = ["dassault","cadence","siemens","ptc","autodesk","etap","aveva","procore","emerald","phaidra"];
+function glyph(t){
+  const c=`var(${TYPES[t].c})`;
+  if(t==="bi") return `<svg class="glyph" width="14" height="14" aria-label="${TYPES[t].label}"><circle cx="7" cy="7" r="6" fill="${c}"/></svg>`;
+  if(t==="own") return `<svg class="glyph" width="14" height="14" aria-label="${TYPES[t].label}"><rect x="2.5" y="2.5" width="9" height="9" transform="rotate(45 7 7)" fill="${c}"/></svg>`;
+  if(t==="use") return `<svg class="glyph" width="14" height="14" aria-label="${TYPES[t].label}"><circle cx="7" cy="7" r="5.5" fill="none" stroke="${c}" stroke-width="1.6"/><path d="M7 1.5 A5.5 5.5 0 0 1 7 12.5 Z" fill="${c}"/></svg>`;
+  return `<svg class="glyph" width="14" height="14" aria-label="${TYPES[t].label}"><circle cx="7" cy="7" r="5" fill="none" stroke="${c}" stroke-width="1.4" stroke-dasharray="2 2"/></svg>`;
+}
+const mgroup=document.getElementById("mgroup"), mties=document.getElementById("mties");
+mgroup.innerHTML=`<option value="">All groups</option>`+PGROUPS.map((g,i)=>`<option value="${i}">${esc(g.name)}</option>`).join("");
+function renderMatrix(){
+  const gi=mgroup.value, only=mties.checked; let shown=0;
+  let mh = `<thead><tr><th>DSX company</th>${VCOLS.map(v=>`<th class="v">${esc(N[v].name.replace(" Systèmes",""))}</th>`).join("")}<th class="l">Other software</th><th class="l">DSX role</th><th>Coverage</th></tr></thead><tbody>`;
+  PGROUPS.forEach((g,i)=>{
+    if(gi!==""&&String(i)!==gi) return;
+    const ids=g.ids.filter(id=>!only||N[id].cov!=="none"); if(!ids.length) return;
+    mh += `<tr class="gr"><td colspan="${VCOLS.length+4}">${esc(g.name)}</td></tr>`;
+    ids.forEach(id=>{ const p=N[id]; shown++;
+      const swE = E.filter(e=>(e.a===id&&isSw(e.b))||(e.b===id&&isSw(e.a)));
+      mh += `<tr><td><button class="pn" type="button" data-sel="${id}">${esc(p.name)}${p.pod?'<span class="p">POD</span>':""}</button></td>`;
+      VCOLS.forEach(v=>{const e=swE.find(x=>x.a===v||x.b===v); mh += `<td>${e?`<span title="${esc(e.title)}">${glyph(e.type)}</span>`:""}</td>`;});
+      const oth = swE.filter(e=>!VCOLS.includes(e.a)&&!VCOLS.includes(e.b));
+      mh += `<td class="l oth">${oth.map(e=>{const o=e.a===id?e.b:e.a;return `${glyph(e.type)} ${esc(N[o].name)}`;}).join("<br>")}</td>`;
+      mh += `<td class="l">${p.roles.map(r=>`<span class="role" title="${esc(ROLES[r])}">${ROLE_SHORT[r]}</span>`).join(" ")}</td>`;
+      mh += `<td><span class="pill2 c-${p.cov}">${COVLABEL[p.cov]}</span></td></tr>`;
+    });
+  });
+  mh += `</tbody><tfoot><tr><td colspan="${VCOLS.length+4}" style="font-size:12.5px;color:var(--muted);text-align:left;white-space:normal">${glyph("bi")} Named partnership &nbsp; ${glyph("own")} Ownership / investment &nbsp; ${glyph("use")} Documented tool use &nbsp; ${glyph("eco")} Ecosystem link (NVIDIA-stated)</td></tr></tfoot>`;
+  const mt=document.getElementById("matrix"); mt.innerHTML=mh;
+  document.getElementById("mcnt").textContent = shown+" of "+partners.length+" companies";
+  mt.querySelectorAll("[data-sel]").forEach(b=>b.addEventListener("click",()=>goTo(b.dataset.sel)));
+}
+mgroup.addEventListener("change",renderMatrix); mties.addEventListener("change",renderMatrix); renderMatrix();
+
+// ---------------- Evidence log ----------------
+const tf = document.getElementById("tf");
+tf.innerHTML = `<option value="">All relationship types</option>`+TYPE_ORDER.map(t=>`<option value="${t}">${TYPES[t].label}</option>`).join("");
+const q = document.getElementById("q");
+function renderEv(){
+  const term=q.value.trim().toLowerCase(), t=tf.value;
+  const rows = E.filter(e=>(!t||e.type===t)&&(!term||(N[e.a].name+" "+N[e.b].name+" "+e.title+" "+e.text).toLowerCase().includes(term)))
+    .sort((a,b)=>TYPE_ORDER.indexOf(a.type)-TYPE_ORDER.indexOf(b.type)||String(b.date).localeCompare(String(a.date)));
+  document.getElementById("ev").innerHTML = `<thead><tr><th>Relationship</th><th>Type</th><th>Date</th><th>Evidence</th><th>Sources</th></tr></thead><tbody>`+
+    rows.map(e=>`<tr><td class="r">${esc(N[e.a].name)} ↔ ${esc(N[e.b].name)}</td><td><span class="pill2 t-${e.type}">${TYPES[e.type].short}</span></td><td class="d">${esc(e.date)}</td><td class="x"><b>${esc(e.title)}.</b> ${esc(e.text)}</td><td class="s">${e.src.map(k=>`<a href="${esc(S[k][1])}" target="_blank" rel="noopener" title="${esc(S[k][0])}">[${SRC_NUM[k]}]</a>`).join("")}</td></tr>`).join("")+`</tbody>`;
+  document.getElementById("cnt").textContent = rows.length+" of "+E.length+" entries";
+}
+q.addEventListener("input",renderEv); tf.addEventListener("change",renderEv); renderEv();
+
+document.getElementById("srcs").innerHTML = SRC_KEYS.map(k=>`<li><a href="${esc(S[k][1])}" target="_blank" rel="noopener">${esc(S[k][0])}</a></li>`).join("");
+window.__dsx = {N,E,S,partners};
+})();
+</script>
+
+</body></html>
