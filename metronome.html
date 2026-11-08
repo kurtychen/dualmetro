@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Metronome">
+<meta name="theme-color" content="#0f0f13">
+<title>Metronome</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    --accent: #7c6aff;
+    --accent2: #ff6a9a;
+    background: #0f0f13;
+    color: #e0e0e0;
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    min-height: 100vh;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: max(24px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right))
+             max(24px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+    gap: 20px;
+  }
+
+  button, select, input { touch-action: manipulation; font-family: inherit; }
+
+  h1 {
+    font-size: 1.4rem;
+    font-weight: 300;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #888;
+  }
+
+  .layout {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 20px;
+    width: 100%;
+    max-width: 640px;
+  }
+
+  .card {
+    background: #1a1a22;
+    border: 1px solid #2a2a3a;
+    border-radius: 24px;
+    padding: 24px 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: #666;
+  }
+
+  /* ── Tempo ─────────────────────────────────────────── */
+  .bpm-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    width: 100%;
+  }
+
+  .bpm-stack { display: flex; flex-direction: column; gap: 10px; }
+
+  .step-btn {
+    background: #2a2a3a;
+    border: none;
+    color: #ccc;
+    width: 72px;
+    height: 56px;
+    border-radius: 14px;
+    font-size: 1.2rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.12s, transform 0.08s;
+  }
+
+  .step-btn:active, .step-btn.held { background: #3a3a50; transform: scale(0.95); }
+
+  .bpm-display {
+    flex: 1;
+    min-width: 0;
+    max-width: 240px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: ns-resize;
+    touch-action: none;
+    padding: 6px 0;
+    border-radius: 16px;
+    transition: background 0.15s;
+  }
+
+  .bpm-display.dragging { background: #22222e; }
+
+  .bpm-num {
+    font-size: 6rem;
+    font-weight: 700;
+    color: #fff;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .bpm-sub {
+    font-size: 0.8rem;
+    color: #777;
+    letter-spacing: 0.1em;
+    margin-top: 6px;
+  }
+
+  .bpm-hint { font-size: 0.65rem; color: #444; margin-top: 4px; }
+
+  input[type=range] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 8px;
+    background: #2a2a3a;
+    border-radius: 4px;
+    outline: none;
+    touch-action: none;
+  }
+
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 0 6px rgba(124, 106, 255, 0.18);
+    cursor: pointer;
+  }
+
+  input[type=range]::-moz-range-thumb {
+    width: 34px;
+    height: 34px;
+    border: none;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+  }
+
+  .presets {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 6px;
+    width: 100%;
+    background: #2a2a3a;
+    border-radius: 12px;
+    padding: 4px;
+  }
+
+  .presets button {
+    background: transparent;
+    border: none;
+    color: #888;
+    font-size: 1rem;
+    height: 48px;
+    border-radius: 9px;
+    cursor: pointer;
+    font-variant-numeric: tabular-nums;
+    transition: background 0.12s, color 0.12s;
+  }
+
+  .presets button.active { background: var(--accent); color: #fff; font-weight: 600; }
+
+  .tap-btn {
+    width: 100%;
+    height: 88px;
+    border-radius: 18px;
+    border: 2px solid #3a3a50;
+    background: #22222e;
+    color: #ccc;
+    font-size: 1.3rem;
+    font-weight: 700;
+    letter-spacing: 0.25em;
+    cursor: pointer;
+    transition: background 0.06s, border-color 0.06s, transform 0.06s;
+  }
+
+  .tap-btn.hit {
+    background: rgba(124, 106, 255, 0.25);
+    border-color: var(--accent);
+    transform: scale(0.98);
+  }
+
+  .tap-info { font-size: 0.7rem; color: #555; letter-spacing: 0.08em; min-height: 1em; }
+
+  /* ── Beats ─────────────────────────────────────────── */
+  .beats {
+    display: flex;
+    gap: 14px;
+    flex-wrap: wrap;
+    justify-content: center;
+    min-height: 44px;
+  }
+
+  .beat-dot {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #2a2a3a;
+    border: 3px solid #3a3a50;
+    transition: background 0.05s, box-shadow 0.05s, transform 0.05s;
+  }
+
+  .beat-dot.accent { border-color: var(--accent); }
+
+  .beat-dot.active {
+    background: var(--accent);
+    box-shadow: 0 0 20px var(--accent);
+    transform: scale(1.25);
+  }
+
+  .beat-dot.accent.active { background: var(--accent2); box-shadow: 0 0 22px var(--accent2); }
+
+  .beat-counter {
+    font-size: 0.8rem;
+    color: #555;
+    letter-spacing: 0.1em;
+  }
+
+  .flash {
+    position: absolute;
+    inset: 0;
+    border-radius: 24px;
+    pointer-events: none;
+    opacity: 0;
+    background: rgba(124, 106, 255, 0.14);
+    transition: opacity 0.08s;
+  }
+
+  /* ── Settings ──────────────────────────────────────── */
+  .row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    width: 100%;
+  }
+
+  .row > .label { width: 70px; flex-shrink: 0; }
+
+  .seg {
+    display: flex;
+    background: #2a2a3a;
+    border-radius: 12px;
+    padding: 4px;
+    gap: 4px;
+    flex: 1;
+  }
+
+  .seg button {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: #777;
+    font-size: 0.85rem;
+    height: 48px;
+    border-radius: 9px;
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+    transition: background 0.12s, color 0.12s;
+  }
+
+  .seg button.active { background: var(--accent); color: #fff; }
+
+  .timesig { display: flex; align-items: center; gap: 12px; flex: 1; }
+
+  .timesig select {
+    flex: 1;
+    -webkit-appearance: none;
+    appearance: none;
+    background: #2a2a3a;
+    border: 1px solid #3a3a50;
+    color: #ddd;
+    height: 52px;
+    border-radius: 12px;
+    font-size: 1.2rem;
+    text-align: center;
+    text-align-last: center;
+    cursor: pointer;
+    outline: none;
+  }
+
+  .timesig .slash { font-size: 1.8rem; color: #444; }
+
+  /* ── Transport ─────────────────────────────────────── */
+  .btn-play {
+    width: 100%;
+    height: 84px;
+    border: none;
+    border-radius: 18px;
+    font-size: 1.4rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    color: #fff;
+    background: linear-gradient(135deg, #7c6aff, #ff6a9a);
+    transition: transform 0.08s, filter 0.15s;
+  }
+
+  .btn-play:active { transform: scale(0.98); }
+  .btn-play.running { filter: saturate(0.6) brightness(0.85); }
+
+  .keys { font-size: 0.65rem; color: #444; letter-spacing: 0.08em; text-align: center; }
+
+  /* Landscape tablets (iPad Air: 1180×820): two columns */
+  @media (min-width: 900px) and (orientation: landscape) {
+    body { justify-content: center; }
+    .layout {
+      grid-template-columns: 1.1fr 1fr;
+      max-width: 1120px;
+      align-items: stretch;
+    }
+    .card { justify-content: center; }
+  }
+
+  /* Portrait tablets (iPad Air: 820×1180): roomier single column */
+  @media (min-width: 700px) and (orientation: portrait) {
+    .layout { max-width: 700px; }
+    .bpm-num { font-size: 7.5rem; }
+  }
+
+  @media (max-width: 480px) {
+    .bpm-num { font-size: 4.4rem; }
+    .step-btn { width: 60px; height: 50px; font-size: 1.05rem; }
+    .presets { grid-template-columns: repeat(3, 1fr); }
+    .row > .label { width: 52px; }
+    .seg button { font-size: 0.72rem; }
+  }
+</style>
+</head>
+<body>
+
+<h1>Metronome</h1>
+
+<div class="layout">
+
+  <!-- Tempo -->
+  <div class="card" id="tempoCard">
+    <div class="label">Tempo</div>
+
+    <div class="bpm-row">
+      <div class="bpm-stack">
+        <button class="step-btn" data-step="-1" aria-label="Tempo minus 1">−1</button>
+        <button class="step-btn" data-step="-5" aria-label="Tempo minus 5">−5</button>
+      </div>
+
+      <div class="bpm-display" id="bpmDisplay" title="Drag up/down to change tempo">
+        <div class="bpm-num" id="bpmNum">120</div>
+        <div class="bpm-sub"><span id="bpmMark">Allegro</span> · BPM</div>
+        <div class="bpm-hint">drag ↕ to adjust</div>
+      </div>
+
+      <div class="bpm-stack">
+        <button class="step-btn" data-step="1" aria-label="Tempo plus 1">+1</button>
+        <button class="step-btn" data-step="5" aria-label="Tempo plus 5">+5</button>
+      </div>
+    </div>
+
+    <input type="range" id="tempoSlider" min="20" max="300" value="120" aria-label="Tempo">
+
+    <div class="presets" id="presets"></div>
+
+    <button class="tap-btn" id="tapBtn">TAP</button>
+    <div class="tap-info" id="tapInfo">Tap 2+ times to set tempo</div>
+  </div>
+
+  <!-- Beats + settings + transport -->
+  <div class="card" id="beatCard">
+    <div class="flash" id="flash"></div>
+    <div class="beats" id="beats"></div>
+    <div class="beat-counter" id="counter">— / —</div>
+
+    <div class="row">
+      <div class="label">Time Sig</div>
+      <div class="timesig">
+        <select id="num" aria-label="Beats per bar">
+          <option>1</option><option>2</option><option>3</option><option selected>4</option>
+          <option>5</option><option>6</option><option>7</option><option>8</option>
+          <option>9</option><option>10</option><option>11</option><option>12</option>
+        </select>
+        <div class="slash">/</div>
+        <select id="den" aria-label="Note value">
+          <option>2</option><option selected>4</option><option>8</option><option>16</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="label">Sound</div>
+      <div class="seg" id="soundSeg">
+        <button class="active" data-sound="analog">🔔 Analog</button>
+        <button data-sound="elec-sine">◉ Sine</button>
+        <button data-sound="elec-beep">▪ Beep</button>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="label">Vol</div>
+      <input type="range" id="vol" min="0" max="1" step="0.01" value="0.7" aria-label="Volume">
+    </div>
+
+    <button class="btn-play" id="playBtn">▶ Start</button>
+    <div class="keys">Keyboard: Space = start/stop · T = tap · ↑/↓ = ±1 · Shift+↑/↓ = ±5</div>
+  </div>
+
+</div>
+
+<script>
+const ctx = new (window.AudioContext || window.webkitAudioContext)();
+
+const MIN_BPM = 20, MAX_BPM = 300;
+const PRESETS = [60, 80, 100, 120, 140, 160];
+
+let bpm = 120;
+let soundType = 'analog';
+let running = false;
+
+const $ = id => document.getElementById(id);
+
+// ── Tempo ────────────────────────────────────────────────────────────────────
+function tempoMarking(b) {
+  if (b < 40)  return 'Grave';
+  if (b < 60)  return 'Largo';
+  if (b < 66)  return 'Larghetto';
+  if (b < 76)  return 'Adagio';
+  if (b < 108) return 'Andante';
+  if (b < 120) return 'Moderato';
+  if (b < 156) return 'Allegro';
+  if (b < 176) return 'Vivace';
+  if (b < 200) return 'Presto';
+  return 'Prestissimo';
+}
+
+function setTempo(v) {
+  const n = Math.round(Number(v));
+  if (isNaN(n)) return;
+  bpm = Math.max(MIN_BPM, Math.min(MAX_BPM, n));
+  $('bpmNum').textContent = bpm;
+  $('bpmMark').textContent = tempoMarking(bpm);
+  $('tempoSlider').value = bpm;
+  document.querySelectorAll('#presets button')
+    .forEach(b => b.classList.toggle('active', Number(b.textContent) === bpm));
+}
+
+function changeTempo(d) { setTempo(bpm + d); }
+
+$('tempoSlider').addEventListener('input', e => setTempo(e.target.value));
+
+PRESETS.forEach(p => {
+  const b = document.createElement('button');
+  b.textContent = p;
+  b.addEventListener('click', () => setTempo(p));
+  $('presets').appendChild(b);
+});
+
+// ± buttons: press-and-hold repeats, accelerating
+document.querySelectorAll('.step-btn').forEach(btn => {
+  const step = Number(btn.dataset.step);
+  let timer = null;
+  const stopHold = () => { clearTimeout(timer); timer = null; btn.classList.remove('held'); };
+  btn.addEventListener('pointerdown', e => {
+    e.preventDefault();
+    btn.setPointerCapture(e.pointerId);
+    btn.classList.add('held');
+    changeTempo(step);
+    let delay = 380;
+    const repeat = () => {
+      changeTempo(step);
+      delay = Math.max(60, delay * 0.82);
+      timer = setTimeout(repeat, delay);
+    };
+    timer = setTimeout(repeat, delay);
+  });
+  btn.addEventListener('pointerup', stopHold);
+  btn.addEventListener('pointercancel', stopHold);
+  btn.addEventListener('contextmenu', e => e.preventDefault());
+});
+
+// Drag the big number up/down: 1 BPM per 8 px
+(() => {
+  const el = $('bpmDisplay');
+  let startY = 0, startBpm = 0, dragging = false;
+  el.addEventListener('pointerdown', e => {
+    dragging = true;
+    startY = e.clientY;
+    startBpm = bpm;
+    el.setPointerCapture(e.pointerId);
+    el.classList.add('dragging');
+  });
+  el.addEventListener('pointermove', e => {
+    if (!dragging) return;
+    setTempo(startBpm + Math.round((startY - e.clientY) / 8));
+  });
+  const end = () => { dragging = false; el.classList.remove('dragging'); };
+  el.addEventListener('pointerup', end);
+  el.addEventListener('pointercancel', end);
+  // Mouse wheel / trackpad scroll also adjusts
+  el.addEventListener('wheel', e => {
+    e.preventDefault();
+    changeTempo(e.deltaY < 0 ? 1 : -1);
+  }, { passive: false });
+})();
+
+// ── Tap tempo ────────────────────────────────────────────────────────────────
+const taps = [];
+let tapResetTimer = null;
+
+function tap() {
+  const now = performance.now();
+  // A pause longer than 2 s starts a new tap sequence
+  if (taps.length && now - taps[taps.length - 1] > 2000) taps.length = 0;
+  taps.push(now);
+  if (taps.length > 8) taps.shift();
+
+  const btn = $('tapBtn');
+  btn.classList.add('hit');
+  setTimeout(() => btn.classList.remove('hit'), 90);
+
+  if (taps.length >= 2) {
+    const avg = (taps[taps.length - 1] - taps[0]) / (taps.length - 1);
+    setTempo(60000 / avg);
+    $('tapInfo').textContent = `${taps.length} taps · ${bpm} BPM`;
+  } else {
+    $('tapInfo').textContent = 'Keep tapping…';
+  }
+
+  clearTimeout(tapResetTimer);
+  tapResetTimer = setTimeout(() => {
+    taps.length = 0;
+    $('tapInfo').textContent = 'Tap 2+ times to set tempo';
+  }, 2500);
+}
+
+// pointerdown (not click) so taps register instantly on touch screens
+$('tapBtn').addEventListener('pointerdown', e => { e.preventDefault(); tap(); });
+
+// ── Beats / time signature ───────────────────────────────────────────────────
+function beatsPerBar() { return parseInt($('num').value); }
+function noteValue() { return parseInt($('den').value); }
+
+function buildBeats() {
+  const n = beatsPerBar();
+  const el = $('beats');
+  el.innerHTML = '';
+  for (let i = 0; i < n; i++) {
+    const d = document.createElement('div');
+    d.className = 'beat-dot' + (i === 0 ? ' accent' : '');
+    el.appendChild(d);
+  }
+  currentBeat = 0;
+}
+
+$('num').addEventListener('change', buildBeats);
+$('den').addEventListener('change', buildBeats);
+
+// ── Sound ────────────────────────────────────────────────────────────────────
+document.querySelectorAll('#soundSeg button').forEach(b => {
+  b.addEventListener('click', () => {
+    soundType = b.dataset.sound;
+    document.querySelectorAll('#soundSeg button').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+  });
+});
+
+let _noiseBuffer = null;
+function getNoiseBuffer() {
+  if (_noiseBuffer) return _noiseBuffer;
+  const len = ctx.sampleRate * 0.5;
+  _noiseBuffer = ctx.createBuffer(1, len, ctx.sampleRate);
+  const d = _noiseBuffer.getChannelData(0);
+  for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+  return _noiseBuffer;
+}
+
+function playClick(isAccent, t) {
+  const vol = parseFloat($('vol').value);
+  if (vol === 0) return;
+  if (soundType === 'analog') playAnalog(isAccent, vol, t);
+  else if (soundType === 'elec-sine') playElecSine(isAccent, vol, t);
+  else playElecBeep(isAccent, vol, t);
+}
+
+// Analog: woody transient + low body thud
+function playAnalog(isAccent, vol, t) {
+  const noise = ctx.createBufferSource();
+  noise.buffer = getNoiseBuffer();
+  const bp = ctx.createBiquadFilter();
+  bp.type = 'bandpass';
+  bp.frequency.value = isAccent ? 2200 : 1600;
+  bp.Q.value = 4;
+  const ng = ctx.createGain();
+  ng.gain.setValueAtTime(vol * (isAccent ? 0.9 : 0.55), t);
+  ng.gain.exponentialRampToValueAtTime(0.001, t + 0.045);
+  noise.connect(bp); bp.connect(ng); ng.connect(ctx.destination);
+  noise.start(t); noise.stop(t + 0.05);
+
+  const osc = ctx.createOscillator();
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(isAccent ? 160 : 110, t);
+  osc.frequency.exponentialRampToValueAtTime(50, t + 0.06);
+  const og = ctx.createGain();
+  og.gain.setValueAtTime(vol * (isAccent ? 0.6 : 0.35), t);
+  og.gain.exponentialRampToValueAtTime(0.001, t + 0.07);
+  osc.connect(og); og.connect(ctx.destination);
+  osc.start(t); osc.stop(t + 0.08);
+}
+
+// Electronic sine: clean pitched blip
+function playElecSine(isAccent, vol, t) {
+  const osc = ctx.createOscillator();
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(isAccent ? 1760 : 1320, t);
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(0, t);
+  g.gain.linearRampToValueAtTime(vol * (isAccent ? 1 : 0.6), t + 0.003);
+  g.gain.exponentialRampToValueAtTime(0.001, t + (isAccent ? 0.12 : 0.08));
+  osc.connect(g); g.connect(ctx.destination);
+  osc.start(t); osc.stop(t + 0.13);
+}
+
+// Electronic beep: square-wave punch
+function playElecBeep(isAccent, vol, t) {
+  const osc = ctx.createOscillator();
+  osc.type = 'square';
+  osc.frequency.setValueAtTime(isAccent ? 1200 : 900, t);
+  const hp = ctx.createBiquadFilter();
+  hp.type = 'highpass';
+  hp.frequency.value = 800;
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(vol * (isAccent ? 0.55 : 0.32), t);
+  g.gain.exponentialRampToValueAtTime(0.001, t + 0.04);
+  osc.connect(hp); hp.connect(g); g.connect(ctx.destination);
+  osc.start(t); osc.stop(t + 0.05);
+}
+
+// ── Scheduler ────────────────────────────────────────────────────────────────
+// Clicks are scheduled slightly ahead on the audio clock, so timing stays
+// steady even if the screen is busy. Tempo changes apply from the next beat.
+const LOOKAHEAD_MS = 25;
+const SCHEDULE_AHEAD = 0.12;
+
+let currentBeat = 0;
+let nextNoteTime = 0;
+let schedTimer = null;
+let drawFrame = null;
+const visualQueue = [];
+
+function beatDuration() { return (60 / bpm) * (4 / noteValue()); }
+
+function scheduler() {
+  while (nextNoteTime < ctx.currentTime + SCHEDULE_AHEAD) {
+    const beat = currentBeat % beatsPerBar();
+    playClick(beat === 0, nextNoteTime);
+    visualQueue.push({ beat, time: nextNoteTime });
+    nextNoteTime += beatDuration();
+    currentBeat = beat + 1;
+  }
+}
+
+function draw() {
+  const now = ctx.currentTime;
+  let latest = null;
+  while (visualQueue.length && visualQueue[0].time <= now) latest = visualQueue.shift();
+  if (latest) {
+    const dots = document.querySelectorAll('#beats .beat-dot');
+    dots.forEach((d, i) => d.classList.toggle('active', i === latest.beat));
+    $('counter').textContent = `Beat ${latest.beat + 1} / ${beatsPerBar()}`;
+    const f = $('flash');
+    f.style.opacity = latest.beat === 0 ? 1 : 0.55;
+    setTimeout(() => { f.style.opacity = 0; }, 80);
+  }
+  if (running) drawFrame = requestAnimationFrame(draw);
+}
+
+// Keep the iPad screen awake while playing (iPadOS 16.4+)
+let wakeLock = null;
+async function requestWakeLock() {
+  try { if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen'); }
+  catch (_) { /* not available, ignore */ }
+}
+function releaseWakeLock() {
+  if (wakeLock) { wakeLock.release().catch(() => {}); wakeLock = null; }
+}
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && running) requestWakeLock();
+});
+
+function start() {
+  if (ctx.state === 'suspended') ctx.resume();
+  running = true;
+  currentBeat = 0;
+  visualQueue.length = 0;
+  nextNoteTime = ctx.currentTime + 0.06;
+  scheduler();
+  schedTimer = setInterval(scheduler, LOOKAHEAD_MS);
+  drawFrame = requestAnimationFrame(draw);
+  $('playBtn').textContent = '■ Stop';
+  $('playBtn').classList.add('running');
+  requestWakeLock();
+}
+
+function stop() {
+  running = false;
+  clearInterval(schedTimer);
+  cancelAnimationFrame(drawFrame);
+  visualQueue.length = 0;
+  document.querySelectorAll('.beat-dot').forEach(d => d.classList.remove('active'));
+  $('counter').textContent = '— / —';
+  $('playBtn').textContent = '▶ Start';
+  $('playBtn').classList.remove('running');
+  releaseWakeLock();
+}
+
+function togglePlay() { running ? stop() : start(); }
+
+$('playBtn').addEventListener('click', togglePlay);
+
+// ── Keyboard (iPad Magic Keyboard / desktop) ─────────────────────────────────
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'SELECT' || e.target.tagName === 'INPUT') return;
+  if (e.code === 'Space') { e.preventDefault(); togglePlay(); }
+  else if (e.key === 't' || e.key === 'T') { tap(); }
+  else if (e.key === 'ArrowUp') { e.preventDefault(); changeTempo(e.shiftKey ? 5 : 1); }
+  else if (e.key === 'ArrowDown') { e.preventDefault(); changeTempo(e.shiftKey ? -5 : -1); }
+});
+
+buildBeats();
+setTempo(120);
+</script>
+</body>
+</html>
